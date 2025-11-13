@@ -1,4 +1,8 @@
 @import "css/global.css";
-@import "css/dashboard.css";
 @import "css/colors.css";
 @import "css/tipografia.css";
+
+/*DASHBOARD*/
+@import "css/dashboard/dashboard.css";
+@import "css/dashboard/user.css";
+@import "css/dashboard/historico.css";

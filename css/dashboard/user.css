@@ -1,0 +1,13 @@
+.user {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+
+  padding: 15px;
+  gap: 20px;
+  border: 1px solid;
+  border-radius: 8px;
+}
+.user span {
+  text-transform: uppercase;
+}

@@ -1,0 +1,29 @@
+main {
+  color: #000;
+
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  height: 100%;
+}
+img {
+  max-width: 70px;
+}
+aside {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+
+  padding: 20px;
+}
+ul {
+  max-height: 450px;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+}
+
+li {
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 10px;
+}

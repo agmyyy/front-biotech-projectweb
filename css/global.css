@@ -1,7 +1,12 @@
+html,
 body {
   margin: 0px;
+  padding: 0px;
+  height: 100%;
+
+  background-color: #f4d8d8;
+  box-sizing: border-box;
   font-family: Arial, Helvetica, sans-serif;
-  /* background: #ffffff;*/
 }
 h1,
 h2,
