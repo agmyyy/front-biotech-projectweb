@@ -1,0 +1,30 @@
+/**s.search-content {
+  height: 100%;
+  border: 2px solid;
+
+  display: flex;
+  flex-direction: column;
+  margin: 5px 0 5px 0;
+}
+.search-result {
+  margin: 5px 0 5px 0;
+
+  padding: 20px;
+}
+
+form {
+  border-radius: 8px;
+}
+fieldset {
+  border: none;
+}
+input {
+  padding: 15px;
+}
+
+p {
+  overflow-y: scroll;
+  scrollbar-width: thin;
+}
+.search-input {
+}
