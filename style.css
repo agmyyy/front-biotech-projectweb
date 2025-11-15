@@ -1,9 +1,15 @@
+/*GERAL*/
 @import "css/global.css";
 @import "css/colors.css";
 @import "css/tipografia.css";
 @import "css/searchbar.css";
 
-/*DASHBOARD*/
-@import "css/dashboard/dashboard.css";
-@import "css/dashboard/user.css";
-@import "css/dashboard/historico.css";
+/*CONTEÚDO ASIDE E HISTÓRICO DE PESQUISA*/
+@import "css/aside/dashboard.css";
+@import "css/aside/user.css";
+@import "css/aside/historico.css";
+
+/*EXIBIÇÃO DA BARRA E RESULTADOS DE PESQUISA*/
+@import "css/search/search.css";
+@import "css/search/result.css";
+@import "css/search/searchbar.css";

@@ -1,22 +1,28 @@
 .historico {
   border: 1px solid;
   border-radius: 8px;
+
+  background-color: white;
 }
 .historico h3 {
   text-align: center;
   margin: 15px 0 10px 0;
 }
 .historico ul {
-  height: 500px;
   overflow-y: scroll;
   scrollbar-width: thin;
 
+  height: 500px;
   padding: 10px;
 }
 
 li {
   border: 1px solid;
   border-radius: 4px;
+
+  font-size: 20px;
   padding: 0 10px 10px 10px;
   margin: 5px;
+
+  background-color: rgb(255, 245, 249);
 }

@@ -1,0 +1,19 @@
+.search-result {
+  flex-basis: 800px;
+  flex-grow: 0;
+  flex-shrink: 0;
+
+  margin: 0 50px 0 50px;
+  height: 550px;
+
+  overflow-y: scroll;
+  scrollbar-width: thin;
+}
+p {
+  font-size: 20px;
+
+  text-align: start;
+  align-content: center;
+
+  padding-bottom: 10px;
+}
