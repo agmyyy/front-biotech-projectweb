@@ -1,0 +1,10 @@
+.rate-search {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+
+  font-size: 25px;
+}
+.estrelas {
+  font-size: 25px;
+}

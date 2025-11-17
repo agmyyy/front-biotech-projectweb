@@ -12,4 +12,5 @@
 /*EXIBIÇÃO DA BARRA E RESULTADOS DE PESQUISA*/
 @import "css/search/search.css";
 @import "css/search/result.css";
+@import "css/search/rate.css";
 @import "css/search/searchbar.css";
