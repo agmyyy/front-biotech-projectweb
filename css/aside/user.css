@@ -1,0 +1,16 @@
+.user {
+  display: flex;
+  align-items: center;
+
+  margin-bottom: 10px;
+  padding: 5px;
+  gap: 20px;
+
+  border: 1px solid;
+  border-radius: 8px;
+
+  background-color: white;
+}
+.user span {
+  text-transform: uppercase;
+}
