@@ -1,12 +1,12 @@
 .historico {
-  border: 1px solid;
+  /*border: 1px solid;
   border-radius: 8px;
 
-  background-color: white;
+  background-color: white;*/
 }
 .historico h3 {
   text-align: center;
-  margin: 15px 0 5px 0;
+  padding-bottom: 20px;
 }
 .historico ul {
   overflow-y: scroll;
@@ -17,14 +17,21 @@
 }
 
 .historico li {
-  max-width: 40ch;
+  /* max-width: 40ch;*/
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
-  border: 1px solid;
-  border-radius: 4px;
+  /*
+  border-radius: 4px;*/
+
+  padding: 5px;
+  margin: 2px 0;
 
   font-size: 20px;
-  padding: 0 10px 10px 10px;
-  margin: 5px;
+  /*padding: 0 10px 10px 10px;
+  margin: 5px;*/
 
-  background-color: rgb(255, 245, 249);
+  /**background-color: #;*/
+  /*color: #e9e9d5;*/
 }

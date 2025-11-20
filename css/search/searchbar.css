@@ -1,15 +1,16 @@
 .input-search {
   display: flex;
   flex-direction: column;
+  text-wrap: wrap;
 
-  padding: 30px 0;
+  padding: 10px 0 0 0;
 }
 .input-search p {
+  /* display: none;*/
   text-align: center;
 
-  font-size: 15px;
-  padding-top: 10px;
-  padding-bottom: 20px;
+  font-size: 20px;
+  padding-top: 5px 0;
 }
 fieldset {
   border: none;
@@ -24,7 +25,7 @@ fieldset {
 
   padding: 0 20px;
   border-radius: 20px;
-  font-size: 16px;
+  font-size: 15px;
 
   /* font-weight: bold;*/
 }

@@ -2,15 +2,27 @@
   display: flex;
   flex-direction: column;
 
-  align-items: flex-end;
+  /* background-color: #fff;*/
+  border-radius: 20px 20px 0 20px;
+  padding: 10px 15px 15px 15px;
+
+  max-width: 350px;
+  min-height: 120px;
+
+  margin-left: auto;
+  margin-right: 0;
+}
+.rate-search form {
+  text-align: center;
+  padding: 10px 0;
+}
+.rate-search h3 {
+  text-align: center;
 
   font-size: 25px;
-  margin: 10px 10px 10px 0;
-  padding: 15px;
-
-  border-radius: 15px 15px 0 15px;
+  padding: 10px 0;
 }
 .rate-search input {
-  width: 30px;
+  width: 40px;
   height: 25px;
 }
