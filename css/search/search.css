@@ -1,10 +1,13 @@
-.search-result {
-  flex-basis: 750px;
-  flex-grow: 0;
-  flex-shrink: 0;
+section {
+  display: flex;
+  flex-direction: column;
 
-  margin: 0 30px 0 30px;
-  height: 550px;
+  min-width: 700px;
+  max-width: 1000px;
+}
+
+.search-result {
+  max-height: 500px;
 
   overflow-y: scroll;
   scrollbar-width: thin;

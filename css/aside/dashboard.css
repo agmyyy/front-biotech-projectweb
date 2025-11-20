@@ -1,13 +1,10 @@
 main {
   display: flex;
-  flex-direction: row;
-
-  padding: 35px 10px 10px 10px;
 }
+
 aside {
-  flex-basis: 450px;
-  flex-grow: 0;
-  flex-shrink: 0;
+  min-width: 300px;
+  max-width: 425px;
 }
 .user img {
   max-width: 70px;
