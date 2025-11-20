@@ -21,6 +21,8 @@ p,
 a,
 ul,
 ol {
+  /*letter-spacing: 0.3px;*/
+
   padding: 0 10px 15px 10px;
 }
 
