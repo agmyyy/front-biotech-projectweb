@@ -6,17 +6,19 @@
 }
 .historico h3 {
   text-align: center;
-  margin: 15px 0 10px 0;
+  margin: 15px 0 5px 0;
 }
 .historico ul {
   overflow-y: scroll;
   scrollbar-width: thin;
 
-  height: 500px;
-  padding: 10px;
+  height: 550px;
+  padding: 0 15px;
 }
 
 .historico li {
+  max-width: 40ch;
+
   border: 1px solid;
   border-radius: 4px;
 

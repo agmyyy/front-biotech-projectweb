@@ -15,6 +15,11 @@ body {
   align-items: center;
   justify-content: center;
 }
+main {
+  display: flex;
+  gap: 20px;
+  padding: 5px 25px 5px 0px;
+}
 h1,
 h2,
 h3,
@@ -23,7 +28,8 @@ ul,
 p {
   margin: 0px;
 }
-ul {
+ul,
+ol {
   padding: 0px;
   list-style: none;
 }
