@@ -1,8 +1,12 @@
 .input-search {
   display: flex;
   flex-direction: column;
-  text-wrap: wrap;
 
+  height: 150px;
+
+  justify-content: flex-end;
+
+  text-wrap: wrap;
   padding: 10px 0 0 0;
 }
 .input-search p {
@@ -19,11 +23,8 @@ fieldset {
   height: 60px;
   width: 100%;
 
-  display: flex;
-  align-content: flex-end;
-  justify-content: flex-end;
-
-  padding: 0 20px;
+  padding: 20px;
   border-radius: 20px;
   font-size: 15px;
+  margin-bottom: 20px;
 }
