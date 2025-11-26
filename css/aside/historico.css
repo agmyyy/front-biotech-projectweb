@@ -1,9 +1,3 @@
-.historico {
-  /*border: 1px solid;
-  border-radius: 8px;
-
-  background-color: white;*/
-}
 .historico h3 {
   text-align: center;
   padding-bottom: 20px;
@@ -17,21 +11,18 @@
 }
 
 .historico li {
-  /* max-width: 40ch;*/
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
-  /*
-  border-radius: 4px;*/
+  color: var(--cor-7);
 
-  padding: 5px;
+  border-radius: 4px;
+  padding: 10px;
   margin: 2px 0;
 
   font-size: 20px;
-  /*padding: 0 10px 10px 10px;
-  margin: 5px;*/
-
-  /**background-color: #;*/
-  /*color: #e9e9d5;*/
+}
+.historico li:hover {
+  background: #e8d6d2;
 }

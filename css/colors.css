@@ -1,0 +1,37 @@
+:root {
+  /*BACKGROUND*/
+  --cor-0: #fff;
+  --cor-1: #f7f5f2;
+  --cor-6: #2f6a66;
+
+  /*FONTES*/
+  --cor-2: #23362e;
+  --cor-3: #2a2a2a;
+  --cor-4: #646464;
+  --cor-7: #455554;
+
+  /*HOVER*/
+  --cor-5: #e8d6d2;
+}
+
+.cor-0 {
+  color: var(--cor-0);
+}
+.cor-1 {
+  color: var(--cor-1);
+}
+.cor-2 {
+  color: var(--cor-2);
+}
+.cor-3 {
+  color: var(--cor-3);
+}
+.cor-4 {
+  color: var(--cor-4);
+}
+.cor-5 {
+  color: var(--cor-5);
+}
+.cor-6 {
+  color: var(--cor-5);
+}

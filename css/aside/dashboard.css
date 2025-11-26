@@ -1,6 +1,7 @@
 aside {
-  /*background-color: #125b49;*/
-  /* background-color: #52796f;*/
+  background-color: var(--cor-1);
+  color: var(--cor-3);
+
   padding: 5px 0 10px 5px;
   min-width: 300px;
   max-width: 425px;

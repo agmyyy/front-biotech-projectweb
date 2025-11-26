@@ -2,7 +2,8 @@
   display: flex;
   flex-direction: column;
 
-  /* background-color: #fff;*/
+  background-color: var(--cor-6);
+
   border-radius: 20px 20px 0 20px;
   padding: 10px 15px 15px 15px;
 
@@ -17,6 +18,8 @@
   padding: 10px 0;
 }
 .rate-search h3 {
+  color: var(--cor-0);
+
   text-align: center;
 
   font-size: 25px;
