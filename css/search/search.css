@@ -4,7 +4,9 @@ section {
 
   background-color: var(--cor-0);
 
-  padding: 30px 30px 0 30px;
+ /* padding: 30px 50px 0 50px;*/
+  padding: 30px 80px 0 80px;
+
   width: 100%;
   height: 100vh;
 }
@@ -16,6 +18,8 @@ section {
   scrollbar-width: none;
 
   text-wrap: wrap;
+
+
 }
 .search-result h1,
 h2,
