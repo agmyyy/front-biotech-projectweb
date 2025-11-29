@@ -1,6 +1,7 @@
 .historico h3 {
   text-align: center;
   padding-bottom: 20px;
+  font: 600 1.15rem/1.4 "Inter", sans-serif;
 }
 .historico ul {
   overflow-y: scroll;
@@ -18,10 +19,12 @@
   color: var(--cor-7);
 
   border-radius: 4px;
-  padding: 10px;
+  padding: 5px;
   margin: 2px 0;
 
-  font-size: 20px;
+  font: 300 1.1rem/1.4 "Inter", sans-serif;
+  padding-bottom: 5px;
+  letter-spacing: 0.2px;
 }
 .historico li:hover {
   background: #e8d6d2;
