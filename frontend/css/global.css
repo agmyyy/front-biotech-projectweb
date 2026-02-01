@@ -8,6 +8,10 @@
 body {
   /*background-color: #f4f1ec;*/
 
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
   width: 100%;
   height: 100vh;
 
@@ -19,6 +23,8 @@ body {
 main {
   display: flex;
   /*gap: 20px;*/
+  gap: 20px;
+  padding: 5px 25px 5px 0px;
 }
 h1,
 h2,
@@ -31,8 +37,13 @@ p {
 ul,
 ol {
   padding: 0px;
+  list-style: none;
 }
 a {
   text-decoration: none;
   color: inherit;
+}
+img {
+  max-width: 100%;
+  display: block;
 }
