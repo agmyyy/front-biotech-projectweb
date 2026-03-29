@@ -6,3 +6,157 @@
   padding: 0;
   box-sizing: border-box;
 }
+
+.login-container {
+  display: flex;
+  height: 100vh;
+}
+
+.left-side {
+  width: 60%;
+  background-color: #295B58;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-image: url('/bg-folhas.png');
+  background-size: cover;
+  background-position: center;
+}
+
+.right-side {
+  width: 40%;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 350px;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: #DFE9E8;
+  border-radius: 50px;
+  padding: 0 15px;
+  height: 50px;
+  width: 100%;
+}
+
+.input-icon, .input-icon-eye {
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  font-family: inherit;
+}
+
+.input-icon {
+  display: none;
+}
+
+.input-icon-eye {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.input-field-clean {
+flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #333;
+}
+
+.btn-primary {
+  font-family: inherit;
+  background-color: #AA7166;
+  color: white;
+  border: none;
+  padding: 15px 20px;
+  border-radius: 50px;
+  cursor: pointer;
+  margin-top: 10px;
+  font-weight: 600;
+  width: 100%;
+}
+
+.forgot-password{
+  padding: 15px 20px;
+  text-align: center;
+  color: #2C4235;
+}
+
+.logo-container {
+  margin-bottom: 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.register-link{
+  color: #2C4235;
+  text-decoration: none;
+  padding: 15px 20px;
+}
+
+@media (max-width: 768px) {
+.login-container {
+  display: flex;
+  min-height: 100vh;
+  align-items: stretch;
+  }
+
+.left-side {
+  width: 60%;
+  background-color: #295B58;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-image: url('/bg-folhas.png');
+  background-size: cover;
+  background-position: center;
+}
+
+.right-side {
+  width: 40%;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.input-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.field-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
