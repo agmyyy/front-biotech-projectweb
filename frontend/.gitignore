@@ -1,0 +1,10 @@
+# Cache local do Next.js e Turbopack (O grande vilão que estava travando seu Git)
+.next/
+out/
+
+# Arquivos locais de tipagem gerados pelo Next
+next-env.d.ts
+*.tsbuildinfo
+
+# Caso use alguma dependência isolada no front
+node_modules/
