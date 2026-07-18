@@ -14,13 +14,12 @@ import { FeedbackRating } from "@/components/feedback";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useSearch } from "@/hooks/use-search";
 import { useChat } from "@/hooks/use-chat";
+import { useFeedbackControl } from "@/hooks/use-feedback-control";
 import { cn } from "@/lib/utils";
 
 export function Dashboard() {
-  // Gerencia se a barra lateral está expandida ou recolhida
   const { isCollapsed, toggleSidebar } = useSidebar();
 
-  // Concentra toda a lógica de requisição HTTP, loading, erros e a Ref do input de texto
   const {
     query,
     loading,
@@ -29,12 +28,8 @@ export function Dashboard() {
     executeSearch,
     clearSearch,
     inputRef,
-    setQuery,
-    setResult,
   } = useSearch();
 
-  // CRUD de conversas
-  // Como deve estar antes:
   const {
     sessions,
     activeSession,
@@ -44,62 +39,61 @@ export function Dashboard() {
     setActiveSession,
   } = useChat();
 
-  console.log("SESSÕES NO DASHBOARD:", sessions);
+  const { isGenerationComplete, resetGeneration, completeGeneration } =
+    useFeedbackControl();
 
-  //  HANDLERS / CALLBACKS
   /**
-   * Cria um novo chat limpo. Limpa a busca atual na tela, gera uma nova
-   * sessão no banco/estado e a define instantaneamente como a conversa ativa.
+   * Cria um novo chat limpo.
    */
   const handleNewChat = useCallback(async () => {
     clearSearch();
+    resetGeneration();
     const newSession = await createSession("Nova conversa");
     if (newSession) {
       setActiveSession(newSession);
     }
-  }, [clearSearch, createSession, setActiveSession]);
+  }, [clearSearch, createSession, setActiveSession, resetGeneration]);
 
   /**
-   * Disparado quando o usuário envia o formulário da SearchBar.
-   * Repassa o texto diretamente para o motor de busca do `useSearch`.
+   * Disparado quando o usuário envia uma pergunta.
    */
   const handleSearch = useCallback(
     async (text: string) => {
-      let currentSession = activeSession;
+      // 1. Executa a busca (a validação e o setQuery agora acontecem de forma segura lá dentro)
+      await executeSearch(text);
 
-      // 1. Se não houver chat ativo, cria um na barra lateral com o título da pergunta
+      // 2. Se houver erro de validação imediata (ex: 1 caractere), o executeSearch
+      // não vai atualizar a query. Portanto, não criamos uma sessão nova na barra lateral.
+      const cleanedText = text.trim();
+      if (cleanedText.length < 2) return;
+
+      // 3. Se o texto for válido, gerencia a sessão normalmente
+      let currentSession = activeSession;
+      resetGeneration(); // Esconde o feedback anterior
+
       if (!currentSession) {
         const dynamicTitle =
-          text.length > 24 ? `${text.substring(0, 24)}...` : text;
+          cleanedText.length > 30
+            ? `${cleanedText.substring(0, 30)}...`
+            : cleanedText;
         currentSession = await createSession(dynamicTitle);
       }
-
-      // 2. Executa a busca na API
-      await executeSearch(text);
     },
-    [activeSession, createSession, executeSearch],
+    [activeSession, createSession, executeSearch, resetGeneration],
   );
 
   /**
-   * Altera a conversa ativa ao clicar em um item do histórico lateral.
-   * Reseta a tela de busca para que os dados do chat anterior sumam imediatamente.
+   * Altera a conversa ativa ao clicar no histórico lateral.
    */
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
-      // 1. Limpa a tela central antes de carregar o novo chat
       clearSearch();
-
-      // 2. Avisa o useChat para buscar a sessão completa na API
+      completeGeneration();
       await loadSession(sessionId);
     },
-    [loadSession, clearSearch],
+    [loadSession, clearSearch, completeGeneration],
   );
 
-  /**
-   * Remove uma sessão do histórico.
-   * O `e.stopPropagation()` é crítico aqui para evitar que o clique no botão de deletar
-   * ative também o clique do card (o que dispararia o `handleSelectSession` por engano).
-   */
   const handleDeleteSession = useCallback(
     (sessionId: string, e: React.MouseEvent) => {
       e.stopPropagation();
@@ -114,7 +108,6 @@ export function Dashboard() {
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
-      {/* BARRA LATERAL (ESTRUTURA DE NAVEGAÇÃO E HISTÓRICO) */}
       <Sidebar isCollapsed={isCollapsed} onToggle={toggleSidebar}>
         <AsideHeader isCollapsed={isCollapsed} />
         <NewChat isCollapsed={isCollapsed} onClick={handleNewChat} />
@@ -132,15 +125,15 @@ export function Dashboard() {
       <main className={cn("flex-1 flex flex-col min-w-0")}>
         <div
           className={cn(
-            "flex flex-col flex-1 w-full max-w-4xl mx-auto px-4 py-5 overflow-hidden",
+            "flex flex-col flex-1 w-full max-w-5xl mx-auto px-4 py-5 overflow-hidden",
           )}
         >
+          {/* CONTAINER ÚNICO DE SCROLL (Apenas mensagens e feedback rolam aqui) */}
           <div
             className={cn(
-              "flex-1 flex border-2 flex-col overflow-y-auto custom-scrollbar pr-2",
+              "flex-1 flex flex-col overflow-y-auto custom-scrollbar px-4 space-y-5",
             )}
           >
-            {/* SE A SESSÃO ATIVA TIVER MENSAGENS, RENDERIZA O HISTÓRICO COMPLETO */}
             {activeSession &&
             activeSession.messages &&
             activeSession.messages.length > 0 ? (
@@ -152,43 +145,57 @@ export function Dashboard() {
                 ),
               )
             ) : (
-              /* CASO CONTRÁRIO, MANTÉM O FLUXO ATUAL DE UMA BUSCA ISOLADA EM TEMPO REAL */
               <>
                 {query && <SearchInput text={query} />}
                 {loading ? (
                   <SearchLoading />
                 ) : result ? (
-                  <SearchResult content={result.answer} />
+                  <SearchResult
+                    content={result.answer}
+                    onComplete={completeGeneration}
+                  />
                 ) : (
-                  <div className="flex-1 flex items-center justify-center">
-                    <p className="text-green-1/50 text-lg font-light">
-                      Inicie uma nova conversa ou selecione uma do histórico
-                    </p>
-                  </div>
+                  /* 💡 MUDANÇA 1: Só mostra as boas-vindas se não houver erro na tela */
+                  !error && (
+                    <div className="flex-1 flex items-center justify-center">
+                      <p className="text-green-1/50 text-lg font-light">
+                        Inicie uma nova conversa ou selecione uma do histórico
+                      </p>
+                    </div>
+                  )
                 )}
               </>
             )}
 
-            {/* Bloco de utilitários pós-busca: Feedback (Estrelas) e Erros da API */}
-            {!loading && query && <FeedbackRating onSelect={handleFeedback} />}
-
-            {error && (
-              <div className="flex justify-center mt-4 animate-in fade-in duration-300">
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm w-full max-w-xl">
-                  {error}
-                </div>
+            {/* Bloco de feedback: Só aparece pós-busca e com geração finalizada */}
+            {!loading && query && isGenerationComplete && (
+              <div className="flex justify-start w-full pt-2 pb-4 shrink-0 animate-in fade-in duration-500">
+                <FeedbackRating onSelect={handleFeedback} />
               </div>
             )}
           </div>
 
-          {/* RODAPÉ: COMPONENTE DE ENTRADA DE DADOS */}
-          <div className="pt-4 shrink-0">
-            {/* O input é desativado (`disabled={loading}`) para impedir o usuário de enviar 
-                múltiplas requisições paralelas enquanto a API não responde. */}
+          {/* 💡 RODAPÉ: Agora centraliza o Erro e a SearchBar juntos */}
+          <div className="pt-4 shrink-0 flex flex-col items-center w-full relative">
+            {/* MUDANÇA 2: O erro foi movido para cá, ficando fixo logo acima da barra */}
+            {error && (
+              <div className="w-full max-w-xl mb-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-2.5 rounded-full text-sm text-center shadow-sm">
+                  {error}
+                </div>
+              </div>
+            )}
+
             <SearchBar
               onSearch={handleSearch}
               inputRef={inputRef}
               disabled={loading}
+              /* Quando o usuário clica para corrigir o texto, o erro some */
+              onFocus={() => {
+                if (error) {
+                  clearSearch();
+                }
+              }}
             />
           </div>
         </div>

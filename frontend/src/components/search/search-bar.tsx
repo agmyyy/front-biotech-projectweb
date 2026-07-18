@@ -8,12 +8,14 @@ interface SearchBarProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   disabled?: boolean;
   placeholder?: string;
+  onFocus?: () => void;
 }
 
 export function SearchBar({
   onSearch,
   inputRef,
   disabled = false,
+  onFocus,
   placeholder = "Faça uma pesquisa...",
 }: SearchBarProps) {
   const [inputValue, setInputValue] = useState("");
@@ -36,8 +38,9 @@ export function SearchBar({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           disabled={disabled}
+          onFocus={onFocus}
           className={cn(
-            "flex w-full border border-green-1/50 rounded-3xl shadow-md px-4 py-3 placeholder:text-green-1/50",
+            "flex w-full border border-green-1/50 rounded-3xl shadow-xl px-4 py-3 placeholder:text-green-1/50",
             "focus:outline-none focus:ring-2 focus:ring-green-1/50 focus:border-transparent",
             "transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
           )}

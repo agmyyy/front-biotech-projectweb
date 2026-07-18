@@ -11,7 +11,7 @@ interface LogoutProps {
 
 export function Logout({ isCollapsed }: LogoutProps) {
   return (
-    <footer className="mt-auto w-full flex">
+    <footer className="mt-auto py-2 w-full flex">
       <Link href="/" className={isCollapsed ? "w-full flex" : ""}>
         <Button
           type="button"

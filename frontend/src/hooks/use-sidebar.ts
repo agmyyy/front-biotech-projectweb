@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 interface UseSidebarReturn {
   isCollapsed: boolean;
@@ -8,15 +8,15 @@ interface UseSidebarReturn {
   setCollapsed: (collapsed: boolean) => void;
 }
 
-export function useSidebar(initialCollapsed = false): UseSidebarReturn {
+export function useSidebar(initialCollapsed = true): UseSidebarReturn {
   const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
-
-  const toggleSidebar = useCallback(() => {
-    setIsCollapsed((prev) => !prev);
-  }, []);
 
   const setCollapsed = useCallback((collapsed: boolean) => {
     setIsCollapsed(collapsed);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setIsCollapsed((prev) => !prev);
   }, []);
 
   return {

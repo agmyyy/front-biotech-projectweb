@@ -33,7 +33,7 @@ export function Sidebar({ children, isCollapsed, onToggle }: SidebarProps) {
       <button
         onClick={onToggle}
         className={cn(
-          "flex items-center justify-center rounded-full w-6 h-6 absolute -right-3 top-6 z-10 bg-green-1 cursor-pointer text-aside shadow-xl hover:scale-110 transition-transform",
+          "flex items-center justify-center rounded-full w-6 h-6 absolute -right-3 top-6 z-10 bg-green-2 cursor-pointer text-aside shadow-xl hover:scale-110 transition-transform",
           isCollapsed && "rotate-180",
         )}
         aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}

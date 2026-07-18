@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
+// @ts-ignore
 import "./globals.css";
 
 const fontPrimary = Inter({
@@ -19,7 +20,7 @@ const fontSecondary = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "4WBiotech ",
+  title: "4WBiotech",
   description: "Interface de chat inteligente para biotecnologia",
   metadataBase: new URL("http://localhost:3000"),
 };

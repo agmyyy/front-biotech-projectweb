@@ -27,18 +27,18 @@ export function FeedbackRating({
   return (
     <div
       className={cn(
-        "flex flex-col p-3 items-center w-45 h-22 bg-li rounded-t-2xl rounded-br-2xl shadow-md",
+        "flex flex-col p-3 items-center w-55 h-23 bg-li shadow-ms rounded-t-2xl rounded-br-2xl shadow-md",
         "border border-li/50",
       )}
       role="group"
       aria-label="Avaliação da pesquisa"
     >
       <h3
-        className={cn("text-xs font-primary mb-2 text-center", "font-medium")}
+        className={cn("text-md font-primary mb-2 text-center", "font-medium")}
       >
         Avalie sua pesquisa:
       </h3>
-      <div className="flex items-center gap-1.5 p-1">
+      <div className="flex items-center gap-0.5 p-0.5">
         {[...Array(maxRating)].map((_, index) => {
           const ratingValue = index + 1;
           const isFilled = ratingValue <= (hover || rating);
@@ -61,10 +61,10 @@ export function FeedbackRating({
               <Star
                 size={20}
                 className={cn(
-                  "transition-colors duration-200",
+                  "transition-colors duration-400",
                   isFilled
-                    ? "fill-green-1 text-green-1"
-                    : "fill-transparent text-green-1/30",
+                    ? "fill-green-1 text-green-1/"
+                    : "fill-green-1/30 text-green-1/30",
                 )}
               />
             </button>
