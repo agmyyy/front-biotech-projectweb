@@ -1,6 +1,6 @@
 export interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
   rating?: number;
@@ -20,6 +20,7 @@ export interface SearchRequest {
 }
 
 export interface SearchResponse {
+  searchId?: string;
   answer: string;
   sources?: string[];
   sessionId: string;

@@ -2,12 +2,16 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { User } from "@shared/auth.schema";
 
 interface AsideHeaderProps {
   isCollapsed?: boolean;
+  user?: User | null;
 }
 
-export function AsideHeader({ isCollapsed }: AsideHeaderProps) {
+export function AsideHeader({ isCollapsed, user }: AsideHeaderProps) {
+  const firstName = user?.name ? user.name.split("")[0] : "user";
+
   return (
     <header
       className={cn("flex w-full gap-4 mb-8", isCollapsed && "justify-left")}
@@ -23,7 +27,7 @@ export function AsideHeader({ isCollapsed }: AsideHeaderProps) {
       </div>
       {!isCollapsed && (
         <span className=" self-center whitespace-nowrap overflow-hidden text-lg font-medium">
-          Olá, Agmy!
+          Olá, {firstName}!
         </span>
       )}
     </header>

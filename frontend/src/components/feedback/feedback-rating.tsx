@@ -27,7 +27,7 @@ export function FeedbackRating({
   return (
     <div
       className={cn(
-        "flex flex-col p-3 items-center w-55 h-23 bg-li shadow-ms rounded-t-2xl rounded-br-2xl shadow-md",
+        "flex flex-col p-3 items-center w-56 h-24 bg-li shadow-ms rounded-t-2xl rounded-br-2xl shadow-md",
         "border border-li/50",
       )}
       role="group"
@@ -63,7 +63,7 @@ export function FeedbackRating({
                 className={cn(
                   "transition-colors duration-400",
                   isFilled
-                    ? "fill-green-1 text-green-1/"
+                    ? "fill-green-1 text-green-1"
                     : "fill-green-1/30 text-green-1/30",
                 )}
               />

@@ -4,18 +4,26 @@ import { motion } from "framer-motion";
 import { ReactNode, Children, isValidElement, cloneElement } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { User } from "@shared/auth.schema";
 
 interface SidebarChildProps {
   isCollapsed?: boolean;
+  user?: User | null;
 }
 
 interface SidebarProps {
   children: ReactNode;
   isCollapsed: boolean;
   onToggle: () => void;
+  user?: User | null;
 }
 
-export function Sidebar({ children, isCollapsed, onToggle }: SidebarProps) {
+export function Sidebar({
+  children,
+  isCollapsed,
+  onToggle,
+  user,
+}: SidebarProps) {
   return (
     <motion.aside
       initial={false}
@@ -55,7 +63,7 @@ export function Sidebar({ children, isCollapsed, onToggle }: SidebarProps) {
         <div className="flex flex-col h-full w-full">
           {Children.map(children, (child) => {
             if (isValidElement<SidebarChildProps>(child)) {
-              return cloneElement(child, { isCollapsed });
+              return cloneElement(child, { isCollapsed, user });
             }
             return child;
           })}

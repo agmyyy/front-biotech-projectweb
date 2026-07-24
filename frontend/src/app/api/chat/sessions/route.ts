@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SearchInput } from "@/shared/search.schema";
+import { searchSchema } from "@shared/search.schema";
 
-// Banco em memória temporário
 interface MockSession {
   id: string;
   title: string;
@@ -9,63 +8,60 @@ interface MockSession {
   createdAt: string;
 }
 
-// simulando um banco de dados
 let mockSessions: MockSession[] = [
   {
     id: "1",
     title: "Pesquisa sobre plantas medicinais",
-    messages: [], // Agora o TS sabe que essa lista aceitará mensagens futuramente
+    messages: [],
     createdAt: new Date().toISOString(),
   },
   {
     id: "2",
-    title: "Portetor solar vegano",
-    messages: [], // Agora o TS sabe que essa lista aceitará mensagens futuramente
+    title: "Protetor solar vegano",
+    messages: [],
     createdAt: new Date().toISOString(),
   },
   {
     id: "3",
-    title: "Creme para as mãoS",
-    messages: [], // Agora o TS sabe que essa lista aceitará mensagens futuramente
+    title: "Creme para as mãos",
+    messages: [],
     createdAt: new Date().toISOString(),
   },
   {
     id: "4",
     title: "Shampoo e Condicionador",
-    messages: [], // Agora o TS sabe que essa lista aceitará mensagens futuramente
+    messages: [],
     createdAt: new Date().toISOString(),
   },
 ];
 
-//LISTAR
+// LISTAR
 export async function GET() {
   return NextResponse.json(mockSessions);
-
-  //return NextResponse.json({ name: true, method: "GET" });
 }
 
-//ENVIAR
+// ENVIAR
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const result = SearchInput.safeParse(body);
+
+    const result = searchSchema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json(
         {
-          error: "Dados inválidosssss",
+          error: "Dados inválidos",
           details: result.error.format(),
         },
         { status: 400 },
       );
     }
 
-    // Como o seu schema usa 'content', pegamos ele aqui
     const { content } = result.data;
 
-    const newSession = {
+    const newSession: MockSession = {
       id: crypto.randomUUID(),
-      title: content, // O título da sessão passa a ser o conteúdo digitado
+      title: content,
       messages: [{ id: crypto.randomUUID(), role: "user", content }],
       createdAt: new Date().toISOString(),
     };
@@ -73,10 +69,19 @@ export async function POST(request: NextRequest) {
     mockSessions.push(newSession);
     return NextResponse.json(newSession, { status: 201 });
   } catch (error) {
+    console.error(" ERRO REAL DA ROTA:", error);
+
+    return NextResponse.json(
+      { error: "Erro interno do servidor", details: String(error) },
+      { status: 500 },
+    );
+  }
+
+  /*catch (error) {
     console.error("Erro ao criar sessão:", error);
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 },
     );
-  }
+  }*/
 }

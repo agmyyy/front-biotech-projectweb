@@ -59,7 +59,7 @@ export function SearchResult({
       <div className="w-full max-w-3xl">
         <p
           className={cn(
-            "font-normal leading-relaxed text-lg text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
+            " leading-relaxed font-light text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
             displayedText.length < content.length &&
               "after:content-['|'] after:animate-pulse after:ml-0.5 after:text-green-1",
           )}

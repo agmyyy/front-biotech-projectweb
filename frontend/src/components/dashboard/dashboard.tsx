@@ -11,11 +11,14 @@ import {
 import { SearchInput, SearchResult, SearchLoading } from "@/components/chat";
 import { SearchBar } from "@/components/search";
 import { FeedbackRating } from "@/components/feedback";
-import { useSidebar } from "@/hooks/use-sidebar";
-import { useSearch } from "@/hooks/use-search";
-import { useChat } from "@/hooks/use-chat";
-import { useFeedbackControl } from "@/hooks/use-feedback-control";
+import { useSidebar } from "@/hooks/control/use-sidebar";
+import { useSearch } from "@/hooks/control/use-search";
+import { useChat } from "@/hooks/control/use-chat";
+import { useFeedbackApi } from "@/hooks/api/use-feedback-api";
+import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
+
 import { cn } from "@/lib/utils";
+import { div } from "framer-motion/client";
 
 export function Dashboard() {
   const { isCollapsed, toggleSidebar } = useSidebar();
@@ -42,12 +45,18 @@ export function Dashboard() {
   const { isGenerationComplete, resetGeneration, completeGeneration } =
     useFeedbackControl();
 
+  const { sendFeedback, resetFeedback, isSubmitting, isSubmitted } =
+    useFeedbackApi({
+      searchId: result?.sessionId || activeSession?.id,
+    });
+
   /**
    * Cria um novo chat limpo.
    */
   const handleNewChat = useCallback(async () => {
     clearSearch();
     resetGeneration();
+    resetFeedback();
     const newSession = await createSession("Nova conversa");
     if (newSession) {
       setActiveSession(newSession);
@@ -70,6 +79,7 @@ export function Dashboard() {
       // 3. Se o texto for válido, gerencia a sessão normalmente
       let currentSession = activeSession;
       resetGeneration(); // Esconde o feedback anterior
+      resetFeedback();
 
       if (!currentSession) {
         const dynamicTitle =
@@ -102,9 +112,12 @@ export function Dashboard() {
     [deleteSession],
   );
 
-  const handleFeedback = useCallback((rating: number) => {
-    console.log("Feedback:", rating);
-  }, []);
+  const handleFeedback = useCallback(
+    (rating: number) => {
+      sendFeedback(rating);
+    },
+    [sendFeedback],
+  );
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
@@ -155,7 +168,6 @@ export function Dashboard() {
                     onComplete={completeGeneration}
                   />
                 ) : (
-                  /* 💡 MUDANÇA 1: Só mostra as boas-vindas se não houver erro na tela */
                   !error && (
                     <div className="flex-1 flex items-center justify-center">
                       <p className="text-green-1/50 text-lg font-light">
@@ -170,14 +182,21 @@ export function Dashboard() {
             {/* Bloco de feedback: Só aparece pós-busca e com geração finalizada */}
             {!loading && query && isGenerationComplete && (
               <div className="flex justify-start w-full pt-2 pb-4 shrink-0 animate-in fade-in duration-500">
-                <FeedbackRating onSelect={handleFeedback} />
+                {isSubmitted ? (
+                  <h2 className="items-center justify-center text-center pt-6 font-medium  w-56 h-24 p-4 bg-li text-md text-green-1 shadow-ms rounded-t-2xl rounded-br-2xl shadow-md border border-li/50">
+                    Obrigado(a) pelo seu feedback!
+                  </h2>
+                ) : (
+                  <FeedbackRating
+                    onSelect={handleFeedback}
+                    disabled={isSubmitting}
+                  />
+                )}
               </div>
             )}
           </div>
 
-          {/* 💡 RODAPÉ: Agora centraliza o Erro e a SearchBar juntos */}
           <div className="pt-4 shrink-0 flex flex-col items-center w-full relative">
-            {/* MUDANÇA 2: O erro foi movido para cá, ficando fixo logo acima da barra */}
             {error && (
               <div className="w-full max-w-xl mb-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-2.5 rounded-full text-sm text-center shadow-sm">
