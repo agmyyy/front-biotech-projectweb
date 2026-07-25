@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// 1. Objeto JavaScript real (valor)
 export const searchSchema = z.object({
   content: z
     .string({

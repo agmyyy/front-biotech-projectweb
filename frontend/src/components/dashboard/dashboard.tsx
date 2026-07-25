@@ -16,9 +16,7 @@ import { useSearch } from "@/hooks/control/use-search";
 import { useChat } from "@/hooks/control/use-chat";
 import { useFeedbackApi } from "@/hooks/api/use-feedback-api";
 import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
-
 import { cn } from "@/lib/utils";
-import { div } from "framer-motion/client";
 
 export function Dashboard() {
   const { isCollapsed, toggleSidebar } = useSidebar();
@@ -61,26 +59,28 @@ export function Dashboard() {
     if (newSession) {
       setActiveSession(newSession);
     }
-  }, [clearSearch, createSession, setActiveSession, resetGeneration]);
+  }, [
+    clearSearch,
+    createSession,
+    setActiveSession,
+    resetGeneration,
+    resetFeedback,
+  ]);
 
   /**
    * Disparado quando o usuário envia uma pergunta.
    */
   const handleSearch = useCallback(
     async (text: string) => {
-      // 1. Executa a busca (a validação e o setQuery agora acontecem de forma segura lá dentro)
-      await executeSearch(text);
-
-      // 2. Se houver erro de validação imediata (ex: 1 caractere), o executeSearch
-      // não vai atualizar a query. Portanto, não criamos uma sessão nova na barra lateral.
       const cleanedText = text.trim();
       if (cleanedText.length < 2) return;
 
-      // 3. Se o texto for válido, gerencia a sessão normalmente
-      let currentSession = activeSession;
       resetGeneration(); // Esconde o feedback anterior
       resetFeedback();
 
+      let currentSession = activeSession;
+
+      // Se não houver sessão ativa, cria primeiro para obter um ID válido
       if (!currentSession) {
         const dynamicTitle =
           cleanedText.length > 30
@@ -88,8 +88,17 @@ export function Dashboard() {
             : cleanedText;
         currentSession = await createSession(dynamicTitle);
       }
+
+      // Executa a busca passando a sessão caso seu useSearch suporte
+      await executeSearch(text);
     },
-    [activeSession, createSession, executeSearch, resetGeneration],
+    [
+      activeSession,
+      createSession,
+      executeSearch,
+      resetGeneration,
+      resetFeedback,
+    ],
   );
 
   /**
@@ -98,10 +107,11 @@ export function Dashboard() {
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
       clearSearch();
+      resetFeedback();
       completeGeneration();
       await loadSession(sessionId);
     },
-    [loadSession, clearSearch, completeGeneration],
+    [loadSession, clearSearch, completeGeneration, resetFeedback],
   );
 
   const handleDeleteSession = useCallback(
@@ -141,7 +151,7 @@ export function Dashboard() {
             "flex flex-col flex-1 w-full max-w-5xl mx-auto px-4 py-5 overflow-hidden",
           )}
         >
-          {/* CONTAINER ÚNICO DE SCROLL (Apenas mensagens e feedback rolam aqui) */}
+          {/* CONTAINER ÚNICO DE SCROLL */}
           <div
             className={cn(
               "flex-1 flex flex-col overflow-y-auto custom-scrollbar px-4 space-y-5",
@@ -152,9 +162,9 @@ export function Dashboard() {
             activeSession.messages.length > 0 ? (
               activeSession.messages.map((msg, index) =>
                 msg.role === "user" ? (
-                  <SearchInput key={index} text={msg.content} />
+                  <SearchInput key={msg.id || index} text={msg.content} />
                 ) : (
-                  <SearchResult key={index} content={msg.content} />
+                  <SearchResult key={msg.id || index} content={msg.content} />
                 ),
               )
             ) : (
@@ -179,11 +189,11 @@ export function Dashboard() {
               </>
             )}
 
-            {/* Bloco de feedback: Só aparece pós-busca e com geração finalizada */}
+            {/* Bloco de feedback: Pós-busca e com geração finalizada */}
             {!loading && query && isGenerationComplete && (
               <div className="flex justify-start w-full pt-2 pb-4 shrink-0 animate-in fade-in duration-500">
                 {isSubmitted ? (
-                  <h2 className="items-center justify-center text-center pt-6 font-medium  w-56 h-24 p-4 bg-li text-md text-green-1 shadow-ms rounded-t-2xl rounded-br-2xl shadow-md border border-li/50">
+                  <h2 className="flex items-center justify-center text-center font-medium w-56 h-24 p-4 bg-li text-md text-green-1 shadow-md rounded-t-2xl rounded-br-2xl border border-li/50">
                     Obrigado(a) pelo seu feedback!
                   </h2>
                 ) : (
@@ -196,6 +206,7 @@ export function Dashboard() {
             )}
           </div>
 
+          {/* ÁREA DA BARRA DE BUSCA FIXA NO RODAPÉ */}
           <div className="pt-4 shrink-0 flex flex-col items-center w-full relative">
             {error && (
               <div className="w-full max-w-xl mb-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -209,7 +220,6 @@ export function Dashboard() {
               onSearch={handleSearch}
               inputRef={inputRef}
               disabled={loading}
-              /* Quando o usuário clica para corrigir o texto, o erro some */
               onFocus={() => {
                 if (error) {
                   clearSearch();

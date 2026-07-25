@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
-import { toast } from "sonner"; // Ou a biblioteca de toast que você utiliza (ex: shadcn/ui)
+import { toast } from "sonner";
 
 interface UseFeedbackOptions {
   searchId?: string;
 }
 
+//envio da avaliação para o BD
 export function useFeedbackApi({ searchId }: UseFeedbackOptions = {}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);

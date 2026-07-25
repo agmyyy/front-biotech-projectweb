@@ -32,7 +32,6 @@ export function useSearch(): UseSearchReturn {
     const cleanedText = text.trim();
 
     // Se o texto for menor que 2 caracteres, seta o erro e para o código aqui.
-    // Isso impede que 'setQuery' seja executado e que o balão cinza apareça por engano.
     if (cleanedText.length < 2) {
       setError("Sua pesquisa deve ter pelo menos 2 caracteres");
       setResult(null);
@@ -65,7 +64,7 @@ export function useSearch(): UseSearchReturn {
   }, []);
 
   /**
-   * Reseta completamente os estados do hook.
+   * Reseta os estados do hook.
    */
   const clearSearch = useCallback(() => {
     setQuery("");

@@ -61,7 +61,7 @@ export function useChat(): UseChatReturn {
         messages: newSession.messages || [],
       };
 
-      // Atualiza o estado de sessões colocando a nova no topo da lista
+      // Atualiza o estado de sessões colocando a nova no topo da lista do histórico
       setSessions((prev) => [sessionWithMessages, ...prev]);
       setActiveSession(sessionWithMessages);
 
@@ -74,6 +74,7 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
+  //ainda não foi implementado o exclusão de chats
   const deleteSession = useCallback(
     async (sessionId: string) => {
       setLoading(true);
