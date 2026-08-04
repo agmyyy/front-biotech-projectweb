@@ -16,6 +16,7 @@ import { useSearch } from "@/hooks/control/use-search";
 import { useChat } from "@/hooks/control/use-chat";
 import { useFeedbackApi } from "@/hooks/api/use-feedback-api";
 import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
+
 import { cn } from "@/lib/utils";
 
 export function Dashboard() {
@@ -49,48 +50,41 @@ export function Dashboard() {
     });
 
   /**
-   * Cria um novo chat limpo.
+   * Cria um novo chat limpo na interface.
    */
   const handleNewChat = useCallback(async () => {
     clearSearch();
     resetGeneration();
     resetFeedback();
-    const newSession = await createSession("Nova conversa");
-    if (newSession) {
-      setActiveSession(newSession);
-    }
-  }, [
-    clearSearch,
-    createSession,
-    setActiveSession,
-    resetGeneration,
-    resetFeedback,
-  ]);
+    setActiveSession(null); // Reseta a sessão ativa para preparar para nova pergunta
+  }, [clearSearch, resetGeneration, resetFeedback, setActiveSession]);
 
   /**
-   * Disparado quando o usuário envia uma pergunta.
+   * Disparado quando o usuário envia uma pergunta na SearchBar.
    */
   const handleSearch = useCallback(
     async (text: string) => {
       const cleanedText = text.trim();
       if (cleanedText.length < 2) return;
 
-      resetGeneration(); // Esconde o feedback anterior
+      resetGeneration();
       resetFeedback();
+
+      // 1. Cria a variável dynamicTitle AQUI para estar disponível no escopo
+      const dynamicTitle =
+        cleanedText.length > 30
+          ? `${cleanedText.substring(0, 30)}...`
+          : cleanedText;
 
       let currentSession = activeSession;
 
-      // Se não houver sessão ativa, cria primeiro para obter um ID válido
+      // 2. Se não houver sessão ativa na barra lateral, cria uma nova no Mock/BD
       if (!currentSession) {
-        const dynamicTitle =
-          cleanedText.length > 30
-            ? `${cleanedText.substring(0, 30)}...`
-            : cleanedText;
         currentSession = await createSession(dynamicTitle);
       }
 
-      // Executa a busca passando a sessão caso seu useSearch suporte
-      await executeSearch(text);
+      // 3. Executa a busca após garantir que a sessão foi tratada
+      await executeSearch(cleanedText);
     },
     [
       activeSession,
@@ -206,7 +200,7 @@ export function Dashboard() {
             )}
           </div>
 
-          {/* ÁREA DA BARRA DE BUSCA FIXA NO RODAPÉ */}
+          {/* BARRA DE BUSCA FIXA NO RODAPÉ */}
           <div className="pt-4 shrink-0 flex flex-col items-center w-full relative">
             {error && (
               <div className="w-full max-w-xl mb-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
