@@ -164,13 +164,13 @@ export function Dashboard() {
             ) : (
               <>
                 {query && <SearchInput text={query} />}
-                {loading ? (
-                  <SearchLoading />
-                ) : result ? (
+                {result && result.answer ? (
                   <SearchResult
                     content={result.answer}
                     onComplete={completeGeneration}
                   />
+                ) : loading ? (
+                  <SearchLoading />
                 ) : (
                   !error && (
                     <div className="flex-1 flex items-center justify-center">

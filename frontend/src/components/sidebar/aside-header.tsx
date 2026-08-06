@@ -10,7 +10,7 @@ interface AsideHeaderProps {
 }
 
 export function AsideHeader({ isCollapsed, user }: AsideHeaderProps) {
-  const firstName = user?.name ? user.name.split("")[0] : "user";
+  const firstName = user?.name ? user.name.split(" ")[0] : "user";
 
   return (
     <header

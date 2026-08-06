@@ -4,9 +4,22 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 class ApiClient {
   private baseUrl: string;
+  private token: string | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
+  }
+
+  setToken(token: string | null) {
+    this.token = token;
+  }
+
+  getToken(): string | null {
+    return this.token;
+  }
+
+  private getAuthHeaders(): Record<string, string> {
+    return this.token ? { Authorization: `Bearer ${this.token}` } : {};
   }
 
   private async request<T>(
@@ -16,15 +29,25 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}`;
 
     const config: RequestInit = {
+      ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
         ...options.headers,
       },
-      ...options,
     };
 
     try {
       const response = await fetch(url, config);
+
+      if (response.status === 401) {
+        this.token = null;
+        return {
+          error: 'Sessão expirada. Faça login novamente.',
+          status: 401,
+        };
+      }
+
       const data = await response.json();
 
       if (!response.ok) {

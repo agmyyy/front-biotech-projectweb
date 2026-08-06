@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface SearchResultProps {
@@ -9,46 +9,50 @@ interface SearchResultProps {
   onComplete?: () => void;
 }
 
-/**
- * Componente responsável por renderizar a área de exibição do resultado de uma busca.
- * Agora possui um efeito typewriter que digita o texto de forma fluida assim que ele chega.
- */
 export function SearchResult({
   content,
   isLoading = false,
   onComplete,
 }: SearchResultProps) {
   const [displayedText, setDisplayedText] = useState("");
+  const prevContentRef = useRef("");
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
-    // Se não houver conteúdo, limpa o texto anterior e sai
     if (!content) {
       setDisplayedText("");
+      prevContentRef.current = "";
       return;
     }
 
-    let currentPosition = 0;
-    const speed = 6;
+    const prevContent = prevContentRef.current;
+    const isStreaming = content.startsWith(prevContent) && content.length > prevContent.length;
+    const isNewSearch = !content.startsWith(prevContent) || content.length < prevContent.length;
 
-    // Reseta o texto exibido para começar do zero toda vez que chegar uma nova resposta
-    setDisplayedText("");
+    let currentPosition: number;
+    if (isStreaming) {
+      currentPosition = prevContent.length;
+    } else if (isNewSearch) {
+      currentPosition = 0;
+      setDisplayedText("");
+    } else {
+      return;
+    }
+
+    prevContentRef.current = content;
+    const speed = 6;
 
     const timer = setInterval(() => {
       if (currentPosition < content.length) {
-        // Pega o texto do início até a posição atual e avança uma letra
         setDisplayedText(content.substring(0, currentPosition + 1));
         currentPosition++;
       } else {
-        // Quando terminar de digitar todo o texto, limpa o intervalo para poupar memória
         clearInterval(timer);
-
-        if (onComplete) {
-          onComplete();
-        }
+        onCompleteRef.current?.();
       }
     }, speed);
 
-    // Função de limpeza (cleanup) do React caso o usuário mude de chat antes de terminar de digitar
     return () => clearInterval(timer);
   }, [content]);
 
