@@ -1,2 +1,2 @@
-// agrupa e exporta todos os DTOs da pasta
 export * from "./auth.dto";
+export * from "./message.dto";

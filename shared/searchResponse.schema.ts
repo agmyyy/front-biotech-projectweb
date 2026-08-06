@@ -1,13 +1,9 @@
 import { z } from "zod";
 
 export const searchResponseSchema = z.object({
-  searchId: z.string({
-    message: "O ID da busca é obrigatório.",
-  }),
-  answer: z.string({
-    message: "A resposta deve ser um texto válido.",
-  }),
-  createdAt: z.string().optional(),
+  answer: z.string({ message: "A resposta deve ser um texto válido." }),
+  sources: z.array(z.string()).optional(),
+  sessionId: z.string({ message: "O ID da sessão é obrigatório." }),
 });
 
-export type SearchResponse = z.infer<typeof searchResponseSchema>;
+export type SearchResponseOutput = z.infer<typeof searchResponseSchema>;

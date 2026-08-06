@@ -2,7 +2,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  createdAt?: string;
   rating?: number;
 }
 
@@ -10,8 +10,8 @@ export interface ChatSession {
   id: string;
   title: string;
   messages: ChatMessage[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SearchRequest {
@@ -20,7 +20,6 @@ export interface SearchRequest {
 }
 
 export interface SearchResponse {
-  searchId?: string;
   answer: string;
   sources?: string[];
   sessionId: string;
@@ -34,11 +33,18 @@ export interface ApiResponse<T> {
 
 export interface FeedbackRating {
   rating: number;
-  sessionId: string;
-  messageId: string;
+  searchId: string;
 }
 
 export interface SidebarState {
   isCollapsed: boolean;
   activeSessionId?: string;
+}
+
+export interface StreamChunk {
+  type: "chunk" | "done" | "error";
+  content?: string;
+  sources?: string[];
+  sessionId?: string;
+  message?: string;
 }

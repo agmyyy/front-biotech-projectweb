@@ -1,26 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
+import { searchSchema } from "@shared/search.schema";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, sessionId } = body;
 
-    if (!query || typeof query !== "string") {
+    const result = searchSchema.safeParse(body);
+
+    if (!result.success) {
+      const firstMessage =
+        result.error.issues[0]?.message || "Dados de busca inválidos.";
+
       return NextResponse.json(
-        { error: "Query é obrigatória" },
+        { error: firstMessage },
         { status: 400 },
       );
     }
 
-    if (query.trim().length < 1) {
-      return NextResponse.json(
-        { error: "Sua pesquisa deve ter pelo menos 2 caracteres" },
-        { status: 400 },
-      );
-    }
+    const { query, sessionId } = result.data;
 
-    const result = await performSearch(query, sessionId);
-    return NextResponse.json(result);
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          await streamSearchResponse(query, sessionId, controller, encoder);
+        } catch (err) {
+          console.error("Erro no stream:", err);
+          const errorChunk = `data: ${JSON.stringify({ type: "error", message: "Erro ao gerar resposta" })}\n\n`;
+          controller.enqueue(encoder.encode(errorChunk));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
   } catch (error) {
     console.error("Erro na busca:", error);
     return NextResponse.json(
@@ -53,37 +75,58 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function performSearch(
+async function streamSearchResponse(
   query: string,
-  sessionId?: string,
-): Promise<{
-  answer: string;
-  sources?: string[];
-  sessionId: string;
-}> {
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  sessionId: string | undefined,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder,
+) {
+  // Simula tempo de processamento/busca no banco vetorial
+  await new Promise((resolve) => setTimeout(resolve, 800));
 
-  const mockAnswer = `Explique como os artigos foram triados e descreva as instruções usadas para extrair dados sobre espécies de plantas e sua origem. 
+  const lowerQuery = query.toLowerCase();
+  let topic = "Rosa Mosqueta (Rosa rubiginosa)";
+  let ativo = "ácidos graxos essenciais (ω-6 e ω-3)";
 
-(SUMÁRIO) 
-O extrato de Rosa Mosqueta (Rosa rubiginosa) apresenta alta concentração de ácidos graxos essenciais, especialmente ácido linoléico (ω-6) e linolênico 
-(ω-3), com potencial regenerativo comprovado em estudos clínicos para pele madura e danificada pelo sol.
- 
+  if (lowerQuery.includes("alecrim") || lowerQuery.includes("cabelo")) {
+    topic = "Alecrim (Rosmarinus officinalis)";
+    ativo = "ácido carnosico e óleos essenciais estimulantes";
+  } else if (lowerQuery.includes("camomila") || lowerQuery.includes("pele")) {
+    topic = "Camomila (Matricaria chamomilla)";
+    ativo = "alfa-bisabolol e apigenina com ação calmante";
+  }
+
+  const mockAnswer = `O extrato de ${topic} apresenta alta concentração de ${ativo}. Seu potencial regenerativo e fitoterápico é amplamente comprovado em ensaios clínicos acadêmicos, sendo ideal para o desenvolvimento de formulações personalizadas de alta performance.
+
 (Sugestões de formulação)
 
-- Serúm facil regenerativo
-- Óleo corporal pós sol
-- Mascara capilar nutritiva`;
+- Sérum facial antioxidante de uso noturno com extrato concentrado de ${topic.split(" ")[0]}.
+- Tônico capilar ou corporal estimulante para regeneração tecidual profunda.
+- Creme base biocompatível nutritivo para peles maduras ou sensibilizadas.`;
 
-  return {
-    answer: mockAnswer,
-    sources: [
-      "Smith et al. (2023) - Journal of Ethnopharmacology",
-      "Garcia & Santos (2022) - Phytochemistry Reviews",
-      "Zhang et al. (2021) - Molecules",
-    ],
-    sessionId: sessionId || crypto.randomUUID(),
-  };
+  const sources = [
+    "Silva, M. et al. (2024) - Revista Brasileira de Farmacognosia",
+    "Dupont, A. & Sampaio, L. (2023) - International Journal of Cosmetic Science",
+    "Global Botanical Actives Report (2025) - Mintel Database",
+  ];
+
+  const finalSessionId = sessionId || crypto.randomUUID();
+
+  // Envia o texto em chunks de palavras com delay realista
+  const words = mockAnswer.split(/(\s+)/);
+  for (const word of words) {
+    const chunk = JSON.stringify({ type: "chunk", content: word });
+    controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
+    await new Promise((resolve) => setTimeout(resolve, 30 + Math.random() * 40));
+  }
+
+  // Envia o evento final com sources e sessionId
+  const doneEvent = JSON.stringify({
+    type: "done",
+    sources,
+    sessionId: finalSessionId,
+  });
+  controller.enqueue(encoder.encode(`data: ${doneEvent}\n\n`));
 }
 
 async function getSearchHistory(sessionId: string) {

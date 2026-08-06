@@ -132,7 +132,10 @@ export const chatService = {
   //POST
   //Registrar a avaliação do usuário sobre as respostas da IA
   async sendFeedback(feedback: FeedbackRating): Promise<void> {
-    const response = await apiClient.post("/chat/feedback", feedback);
+    const response = await apiClient.post("/chat/feedback", {
+      rating: feedback.rating,
+      searchId: feedback.searchId,
+    });
 
     if (response.error) {
       throw new Error(response.error);

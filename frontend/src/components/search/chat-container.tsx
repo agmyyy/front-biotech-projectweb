@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { SearchBar } from "./search-bar";
 import { SearchInput } from "../chat";
-import { SearchInput as SearchInputType } from "@shared/search.schema";
+import { CreateSessionInput } from "@shared/search.schema";
 
 interface Message {
   id: string;
@@ -16,10 +16,10 @@ export interface Session {
   title: string;
   messages: Message[];
   createdAt: string;
+  updatedAt: string;
 }
 
 interface ChatContainerProps {
-  // Recebe a sessão selecionada no histórico (se houver)
   selectedSession?: Session | null;
   onSessionCreated?: (newSession: Session) => void;
 }
@@ -28,24 +28,19 @@ export function ChatContainer({
   selectedSession,
   onSessionCreated,
 }: ChatContainerProps) {
-  // Estado local para armazenar a sessão em exibição no momento
   const [currentSession, setCurrentSession] = useState<Session | null>(
     selectedSession || null,
   );
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Se a prop selectedSession mudar (quando o usuário clica no histórico), atualiza o estado local
-  /* Você também pode usar um useEffect ou gerenciar isso no componente pai */
-
   const handleSearch = async (text: string) => {
-    setIsLoading(false);
     setIsLoading(true);
 
     try {
-      const payload: SearchInputType = { content: text };
+      const payload: CreateSessionInput = { title: text };
 
-      const response = await fetch("/api/sessions", {
+      const response = await fetch("/api/chat/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

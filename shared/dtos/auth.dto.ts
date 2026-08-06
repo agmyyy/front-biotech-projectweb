@@ -1,7 +1,7 @@
-//transformar o schema do Zod em uma Classe.
+import { UserRegisterSchema, UserLogInSchema } from "../auth.schema";
 
-import { createZodDto } from "nestjs-zod";
-import { UserRegister, UserLogIn } from "../auth.schema";
-// O createZodDto cria uma classe a partir do Schema Zod
-export class UserRegisterDto extends createZodDto(UserRegister) {}
-export class UserLogInDto extends createZodDto(UserLogIn) {}
+export const validateRegister = (data: unknown) =>
+  UserRegisterSchema.safeParse(data);
+
+export const validateLogin = (data: unknown) =>
+  UserLogInSchema.safeParse(data);

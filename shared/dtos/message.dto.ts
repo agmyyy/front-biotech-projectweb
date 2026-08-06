@@ -1,5 +1,7 @@
-import { createZodDto } from "nestjs-zod";
+import { searchSchema, createSessionSchema } from "../search.schema";
 
-import { SearchInput } from "../search.schema";
+export const validateSearch = (data: unknown) =>
+  searchSchema.safeParse(data);
 
-export class MessageInputDto extends createZodDto(SearchInput) {}
+export const validateCreateSession = (data: unknown) =>
+  createSessionSchema.safeParse(data);

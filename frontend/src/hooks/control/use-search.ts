@@ -26,12 +26,11 @@ export function useSearch(): UseSearchReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   /**
-   * Dispara o processo de busca com validação prévia de tamanho.
+   * Dispara o processo de busca com streaming de resposta.
    */
   const executeSearch = useCallback(async (text: string) => {
     const cleanedText = text.trim();
 
-    // Se o texto for menor que 2 caracteres, seta o erro e para o código aqui.
     if (cleanedText.length < 2) {
       setError("Sua pesquisa deve ter pelo menos 2 caracteres");
       setResult(null);
@@ -39,7 +38,6 @@ export function useSearch(): UseSearchReturn {
       return;
     }
 
-    // Se houver uma busca anterior ainda rodando, cancela ela imediatamente
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -48,11 +46,36 @@ export function useSearch(): UseSearchReturn {
     setLoading(true);
     setError(null);
     setQuery(cleanedText);
+    setResult(null);
 
     try {
-      const searchResult = await searchService.search({ query: cleanedText });
-      setResult(searchResult);
+      let accumulatedAnswer = "";
+
+      await searchService.searchStream(
+        cleanedText,
+        undefined,
+        (chunk) => {
+          accumulatedAnswer += chunk;
+          setResult((prev) => ({
+            ...prev,
+            answer: accumulatedAnswer,
+            sessionId: prev?.sessionId || "",
+          }));
+        },
+        (sources, sessionId) => {
+          setResult((prev) => ({
+            answer: prev?.answer || "",
+            sources,
+            sessionId,
+          }));
+          setLoading(false);
+        },
+        abortControllerRef.current.signal,
+      );
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
       const errorMessage =
         err instanceof Error ? err.message : "Erro ao buscar";
       setError(errorMessage);
