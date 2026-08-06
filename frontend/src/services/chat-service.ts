@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import type { ChatSession, FeedbackRating } from "@/types";
+import type { ChatMessage, ChatSession, FeedbackRating } from "@/types";
 
 /*
 // Helper simples para simular o comportamento de ler e escrever no localStorage
@@ -117,6 +117,24 @@ export const chatService = {
     }
 
     return response.data;
+  },
+
+  //Atualiza o título e/ou anexa novas mensagens a uma conversa existente.
+  //PATCH
+  async updateSession(
+    sessionId: string,
+    patch: { title?: string; messages?: ChatMessage[] },
+  ): Promise<ChatSession | null> {
+    const response = await apiClient.patch<ChatSession>(
+      `/chat/sessions/${sessionId}`,
+      patch,
+    );
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    return response.data || null;
   },
 
   //Apagar uma conversa permanentemente do banco de dados.

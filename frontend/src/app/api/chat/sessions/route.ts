@@ -1,47 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSessionSchema } from "@shared/search.schema";
-
-export interface Message {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  createdAt: string;
-}
-
-export interface Session {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-const globalForMock = globalThis as unknown as { mockSessions?: Session[] };
-
-const mockSessions: Session[] = globalForMock.mockSessions ?? [
-  {
-    id: "1",
-    title: "Pesquisa sobre plantas medicinais",
-    messages: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    title: "Protetor solar vegano",
-    messages: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
-
-if (process.env.NODE_ENV !== "production") {
-  globalForMock.mockSessions = mockSessions;
-}
+import { mockStore } from "./mock-store";
 
 // GET: Listar Sessões
 export async function GET() {
-  return NextResponse.json(mockSessions, { status: 200 });
+  return NextResponse.json(mockStore.list(), { status: 200 });
 }
 
 // POST: Criar Nova Sessão
@@ -62,17 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { title } = result.data;
-    const now = new Date().toISOString();
-
-    const newSession: Session = {
-      id: crypto.randomUUID(),
-      title,
-      messages: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    mockSessions.unshift(newSession);
+    const newSession = mockStore.create(title);
 
     return NextResponse.json(newSession, { status: 201 });
   } catch (error) {

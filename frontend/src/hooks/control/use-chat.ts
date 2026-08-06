@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { chatService } from "@/services/chat-service";
-import type { ChatSession, FeedbackRating } from "@/types";
+import type { ChatMessage, ChatSession, FeedbackRating } from "@/types";
 
 interface UseChatReturn {
   sessions: ChatSession[];
@@ -12,6 +12,10 @@ interface UseChatReturn {
   loadSessions: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   createSession: (title: string) => Promise<ChatSession | null>;
+  appendMessages: (
+    sessionId: string,
+    messages: ChatMessage[],
+  ) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   sendFeedback: (feedback: FeedbackRating) => Promise<void>;
   setActiveSession: (session: ChatSession | null) => void;
@@ -74,6 +78,31 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
+  const appendMessages = useCallback(
+    async (sessionId: string, messages: ChatMessage[]) => {
+      if (messages.length === 0) return;
+
+      try {
+        const updated = await chatService.updateSession(sessionId, {
+          messages,
+        });
+
+        if (!updated) return;
+
+        // Atualiza a sessão na lista do histórico e na sessão ativa
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? updated : s)),
+        );
+        setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Erro ao salvar mensagens",
+        );
+      }
+    },
+    [],
+  );
+
   //ainda não foi implementado o exclusão de chats
   const deleteSession = useCallback(
     async (sessionId: string) => {
@@ -114,6 +143,7 @@ export function useChat(): UseChatReturn {
     loadSessions,
     loadSession,
     createSession,
+    appendMessages,
     deleteSession,
     sendFeedback,
     setActiveSession,

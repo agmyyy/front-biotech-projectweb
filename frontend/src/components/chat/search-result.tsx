@@ -7,12 +7,14 @@ interface SearchResultProps {
   content: string;
   isLoading?: boolean;
   onComplete?: () => void;
+  animated?: boolean;
 }
 
 export function SearchResult({
   content,
   isLoading = false,
   onComplete,
+  animated = true,
 }: SearchResultProps) {
   const [displayedText, setDisplayedText] = useState("");
   const prevContentRef = useRef("");
@@ -20,6 +22,8 @@ export function SearchResult({
   onCompleteRef.current = onComplete;
 
   useEffect(() => {
+    if (!animated) return;
+
     if (!content) {
       setDisplayedText("");
       prevContentRef.current = "";
@@ -54,9 +58,11 @@ export function SearchResult({
     }, speed);
 
     return () => clearInterval(timer);
-  }, [content]);
+  }, [content, animated]);
 
   if (isLoading) return null;
+
+  const displayText = animated ? displayedText : content;
 
   return (
     <div className="flex justify-center w-full py-4">
@@ -64,11 +70,12 @@ export function SearchResult({
         <p
           className={cn(
             " leading-relaxed font-light text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
-            displayedText.length < content.length &&
+            animated &&
+              displayedText.length < content.length &&
               "after:content-['|'] after:animate-pulse after:ml-0.5 after:text-green-1",
           )}
         >
-          {displayedText}
+          {displayText}
         </p>
       </div>
     </div>

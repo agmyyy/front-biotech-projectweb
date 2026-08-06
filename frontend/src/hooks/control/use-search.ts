@@ -11,7 +11,10 @@ interface UseSearchReturn {
   result: SearchResponse | null;
   error: string | null;
   setResult: React.Dispatch<React.SetStateAction<SearchResponse | null>>;
-  executeSearch: (text: string) => Promise<void>;
+  executeSearch: (
+    text: string,
+    sessionId?: string,
+  ) => Promise<SearchResponse | null>;
   clearSearch: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
 }
@@ -27,64 +30,81 @@ export function useSearch(): UseSearchReturn {
 
   /**
    * Dispara o processo de busca com streaming de resposta.
+   * Retorna o resultado final (answer, sources, sessionId) ou null em erro.
    */
-  const executeSearch = useCallback(async (text: string) => {
-    const cleanedText = text.trim();
+  const executeSearch = useCallback(
+    async (text: string, sessionId?: string): Promise<SearchResponse | null> => {
+      const cleanedText = text.trim();
 
-    if (cleanedText.length < 2) {
-      setError("Sua pesquisa deve ter pelo menos 2 caracteres");
-      setResult(null);
-      setQuery("");
-      return;
-    }
-
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
-    setError(null);
-    setQuery(cleanedText);
-    setResult(null);
-
-    try {
-      let accumulatedAnswer = "";
-
-      await searchService.searchStream(
-        cleanedText,
-        undefined,
-        (chunk) => {
-          accumulatedAnswer += chunk;
-          setResult((prev) => ({
-            ...prev,
-            answer: accumulatedAnswer,
-            sessionId: prev?.sessionId || "",
-          }));
-        },
-        (sources, sessionId) => {
-          setResult((prev) => ({
-            answer: prev?.answer || "",
-            sources,
-            sessionId,
-          }));
-          setLoading(false);
-        },
-        abortControllerRef.current.signal,
-      );
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        return;
+      if (cleanedText.length < 2) {
+        setError("Sua pesquisa deve ter pelo menos 2 caracteres");
+        setResult(null);
+        setQuery("");
+        return null;
       }
-      const errorMessage =
-        err instanceof Error ? err.message : "Erro ao buscar";
-      setError(errorMessage);
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      abortControllerRef.current = new AbortController();
+      setLoading(true);
+      setError(null);
+      setQuery(cleanedText);
       setResult(null);
-      setQuery("");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+
+      let accumulatedAnswer = "";
+      let finalSources: string[] = [];
+      let finalSessionId = sessionId || "";
+
+      try {
+        await searchService.searchStream(
+          cleanedText,
+          sessionId,
+          (chunk) => {
+            accumulatedAnswer += chunk;
+            setResult((prev) => ({
+              ...prev,
+              answer: accumulatedAnswer,
+              sessionId: prev?.sessionId || sessionId || "",
+            }));
+          },
+          (sources, returnedSessionId) => {
+            finalSources = sources;
+            finalSessionId = returnedSessionId || sessionId || "";
+            setResult({
+              answer: accumulatedAnswer,
+              sources,
+              sessionId: finalSessionId,
+            });
+            setLoading(false);
+          },
+          abortControllerRef.current.signal,
+        );
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return null;
+        }
+        const errorMessage =
+          err instanceof Error ? err.message : "Erro ao buscar";
+        setError(errorMessage);
+        setResult(null);
+        setQuery("");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+
+      if (!finalSessionId) return null;
+
+      return {
+        answer: accumulatedAnswer,
+        sources: finalSources,
+        sessionId: finalSessionId,
+      };
+    },
+    [],
+  );
 
   /**
    * Reseta os estados do hook.

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Sidebar,
   AsideHeader,
@@ -20,6 +21,7 @@ import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
 import { cn } from "@/lib/utils";
 
 export function Dashboard() {
+  const router = useRouter();
   const { isCollapsed, toggleSidebar } = useSidebar();
 
   const {
@@ -36,6 +38,7 @@ export function Dashboard() {
     sessions,
     activeSession,
     createSession,
+    appendMessages,
     deleteSession,
     loadSession,
     setActiveSession,
@@ -52,12 +55,26 @@ export function Dashboard() {
   /**
    * Cria um novo chat limpo na interface.
    */
-  const handleNewChat = useCallback(async () => {
+  const handleNewChat = useCallback(() => {
     clearSearch();
     resetGeneration();
     resetFeedback();
     setActiveSession(null); // Reseta a sessão ativa para preparar para nova pergunta
-  }, [clearSearch, resetGeneration, resetFeedback, setActiveSession]);
+    router.replace("/dashboard", { scroll: false });
+  }, [clearSearch, resetGeneration, resetFeedback, setActiveSession, router]);
+
+  /**
+   * Sincroniza a URL com a sessão ativa (ex.: /dashboard?chat=abc-123).
+   */
+  const syncUrl = useCallback(
+    (sessionId?: string) => {
+      router.replace(
+        sessionId ? `/dashboard?chat=${sessionId}` : "/dashboard",
+        { scroll: false },
+      );
+    },
+    [router],
+  );
 
   /**
    * Disparado quando o usuário envia uma pergunta na SearchBar.
@@ -83,15 +100,47 @@ export function Dashboard() {
         currentSession = await createSession(dynamicTitle);
       }
 
-      // 3. Executa a busca após garantir que a sessão foi tratada
-      await executeSearch(cleanedText);
+      if (!currentSession) return;
+
+      // 3. Sincroniza a URL com a sessão ativa
+      syncUrl(currentSession.id);
+
+      // 4. Persiste a pergunta imediatamente no histórico da sessão
+      await appendMessages(currentSession.id, [
+        {
+          id: crypto.randomUUID(),
+          role: "user",
+          content: cleanedText,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
+
+      // 5. Executa a busca vinculada à sessão
+      const searchResult = await executeSearch(
+        cleanedText,
+        currentSession.id,
+      );
+
+      // 6. Persiste a resposta no histórico da sessão
+      if (searchResult && searchResult.answer) {
+        await appendMessages(currentSession.id, [
+          {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: searchResult.answer,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      }
     },
     [
       activeSession,
       createSession,
       executeSearch,
+      appendMessages,
       resetGeneration,
       resetFeedback,
+      syncUrl,
     ],
   );
 
@@ -104,9 +153,38 @@ export function Dashboard() {
       resetFeedback();
       completeGeneration();
       await loadSession(sessionId);
+      syncUrl(sessionId);
     },
-    [loadSession, clearSearch, completeGeneration, resetFeedback],
+    [loadSession, clearSearch, completeGeneration, resetFeedback, syncUrl],
   );
+
+  /**
+   * Ao montar, restaura a sessão indicada na URL (?chat=id).
+   */
+  useEffect(() => {
+    const chatId = new URLSearchParams(window.location.search).get("chat");
+    if (chatId) {
+      loadSession(chatId);
+    }
+  }, [loadSession]);
+
+  /**
+   * Suporta o botão voltar/avançar do navegador.
+   */
+  useEffect(() => {
+    const handlePopState = () => {
+      const chatId = new URLSearchParams(window.location.search).get("chat");
+      if (chatId) {
+        loadSession(chatId);
+      } else {
+        clearSearch();
+        setActiveSession(null);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [loadSession, clearSearch, setActiveSession]);
 
   const handleDeleteSession = useCallback(
     (sessionId: string, e: React.MouseEvent) => {
@@ -122,6 +200,16 @@ export function Dashboard() {
     },
     [sendFeedback],
   );
+
+  const sessionMessages = activeSession?.messages ?? [];
+  const hasMessages = sessionMessages.length > 0;
+  const lastAssistantContent = [...sessionMessages]
+    .reverse()
+    .find((msg) => msg.role === "assistant")?.content;
+
+  // Dedupe: enquanto a resposta atual ainda não foi persistida, exibe o streaming
+  const isLiveAnswerVisible =
+    !!result?.answer && result.answer !== lastAssistantContent;
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
@@ -151,36 +239,36 @@ export function Dashboard() {
               "flex-1 flex flex-col overflow-y-auto custom-scrollbar px-4 space-y-5",
             )}
           >
-            {activeSession &&
-            activeSession.messages &&
-            activeSession.messages.length > 0 ? (
-              activeSession.messages.map((msg, index) =>
+            {hasMessages &&
+              sessionMessages.map((msg, index) =>
                 msg.role === "user" ? (
                   <SearchInput key={msg.id || index} text={msg.content} />
                 ) : (
-                  <SearchResult key={msg.id || index} content={msg.content} />
-                ),
-              )
-            ) : (
-              <>
-                {query && <SearchInput text={query} />}
-                {result && result.answer ? (
                   <SearchResult
-                    content={result.answer}
-                    onComplete={completeGeneration}
+                    key={msg.id || index}
+                    content={msg.content}
+                    animated={false}
                   />
-                ) : loading ? (
-                  <SearchLoading />
-                ) : (
-                  !error && (
-                    <div className="flex-1 flex items-center justify-center">
-                      <p className="text-green-1/50 text-lg font-light">
-                        Inicie uma nova conversa ou selecione uma do histórico
-                      </p>
-                    </div>
-                  )
-                )}
-              </>
+                ),
+              )}
+
+            {isLiveAnswerVisible ? (
+              <SearchResult
+                content={result.answer}
+                onComplete={completeGeneration}
+              />
+            ) : loading ? (
+              <SearchLoading />
+            ) : (
+              !hasMessages &&
+              !result?.answer &&
+              !error && (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-green-1/50 text-lg font-light">
+                    Inicie uma nova conversa ou selecione uma do histórico
+                  </p>
+                </div>
+              )
             )}
 
             {/* Bloco de feedback: Pós-busca e com geração finalizada */}
