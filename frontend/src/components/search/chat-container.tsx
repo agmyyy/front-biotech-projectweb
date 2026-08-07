@@ -74,7 +74,7 @@ export function ChatContainer({
   const activeMessages = currentSession?.messages || [];
 
   return (
-    <div className="flex flex-col h-full w-full max-w-4xl mx-auto p-4 justify-between">
+    <div className="flex border-4 flex-col h-full w-full max-w-4xl mx-auto p-4 justify-between">
       {/* ÁREA DE MENSAGENS / CONTEÚDO */}
       <div className="flex-1 overflow-y-auto space-y-6 py-4">
         {activeMessages.length === 0 ? (

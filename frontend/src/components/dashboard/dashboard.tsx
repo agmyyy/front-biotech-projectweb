@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sidebar,
@@ -28,6 +28,7 @@ export function Dashboard() {
     query,
     loading,
     result,
+    setResult,
     error,
     executeSearch,
     clearSearch,
@@ -46,6 +47,8 @@ export function Dashboard() {
 
   const { isGenerationComplete, resetGeneration, completeGeneration } =
     useFeedbackControl();
+
+  const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
 
   const { sendFeedback, resetFeedback, isSubmitting, isSubmitted } =
     useFeedbackApi({
@@ -86,8 +89,8 @@ export function Dashboard() {
 
       resetGeneration();
       resetFeedback();
+      setResult(null);
 
-      // 1. Cria a variável dynamicTitle AQUI para estar disponível no escopo
       const dynamicTitle =
         cleanedText.length > 30
           ? `${cleanedText.substring(0, 30)}...`
@@ -95,17 +98,20 @@ export function Dashboard() {
 
       let currentSession = activeSession;
 
-      // 2. Se não houver sessão ativa na barra lateral, cria uma nova no Mock/BD
       if (!currentSession) {
         currentSession = await createSession(dynamicTitle);
       }
 
       if (!currentSession) return;
 
-      // 3. Sincroniza a URL com a sessão ativa
       syncUrl(currentSession.id);
 
-      // 4. Persiste a pergunta imediatamente no histórico da sessão
+      // Gera o id da resposta agora para que a chave do balão ao vivo
+      // seja estável durante a transição ao vivo → persistido.
+      const pendingAnswerId = crypto.randomUUID();
+      setPendingAnswerId(pendingAnswerId);
+
+      // Persiste a pergunta imediatamente no histórico da sessão
       await appendMessages(currentSession.id, [
         {
           id: crypto.randomUUID(),
@@ -115,17 +121,12 @@ export function Dashboard() {
         },
       ]);
 
-      // 5. Executa a busca vinculada à sessão
-      const searchResult = await executeSearch(
-        cleanedText,
-        currentSession.id,
-      );
+      const searchResult = await executeSearch(cleanedText, currentSession.id);
 
-      // 6. Persiste a resposta no histórico da sessão
       if (searchResult && searchResult.answer) {
         await appendMessages(currentSession.id, [
           {
-            id: crypto.randomUUID(),
+            id: pendingAnswerId,
             role: "assistant",
             content: searchResult.answer,
             createdAt: new Date().toISOString(),
@@ -140,6 +141,7 @@ export function Dashboard() {
       appendMessages,
       resetGeneration,
       resetFeedback,
+      setResult,
       syncUrl,
     ],
   );
@@ -202,14 +204,34 @@ export function Dashboard() {
   );
 
   const sessionMessages = activeSession?.messages ?? [];
-  const hasMessages = sessionMessages.length > 0;
-  const lastAssistantContent = [...sessionMessages]
-    .reverse()
-    .find((msg) => msg.role === "assistant")?.content;
 
-  // Dedupe: enquanto a resposta atual ainda não foi persistida, exibe o streaming
-  const isLiveAnswerVisible =
-    !!result?.answer && result.answer !== lastAssistantContent;
+  // Remove a última resposta persistida enquanto ela está sendo exibida ao vivo,
+  // evitando duplicar o balão ao finalizar a busca.
+  const persistedMessages = result?.answer
+    ? sessionMessages.filter(
+        (msg, i) =>
+          !(
+            i === sessionMessages.length - 1 &&
+            msg.role === "assistant" &&
+            msg.content === result.answer
+          ),
+      )
+    : sessionMessages;
+
+  // Lista unificada: mensagens persistidas + resposta ao vivo (com chave estável)
+  const displayMessages = result?.answer
+    ? [
+        ...persistedMessages,
+        {
+          id: pendingAnswerId,
+          role: "assistant" as const,
+          content: result.answer,
+          createdAt: "",
+        },
+      ]
+    : persistedMessages;
+
+  const hasMessages = displayMessages.length > 0;
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
@@ -240,35 +262,31 @@ export function Dashboard() {
             )}
           >
             {hasMessages &&
-              sessionMessages.map((msg, index) =>
+              displayMessages.map((msg, index) =>
                 msg.role === "user" ? (
                   <SearchInput key={msg.id || index} text={msg.content} />
                 ) : (
                   <SearchResult
                     key={msg.id || index}
                     content={msg.content}
-                    animated={false}
+                    animated={msg.id === pendingAnswerId}
+                    onComplete={
+                      msg.id === pendingAnswerId
+                        ? completeGeneration
+                        : undefined
+                    }
                   />
                 ),
               )}
 
-            {isLiveAnswerVisible ? (
-              <SearchResult
-                content={result.answer}
-                onComplete={completeGeneration}
-              />
-            ) : loading ? (
-              <SearchLoading />
-            ) : (
-              !hasMessages &&
-              !result?.answer &&
-              !error && (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-green-1/50 text-lg font-light">
-                    Inicie uma nova conversa ou selecione uma do histórico
-                  </p>
-                </div>
-              )
+            {loading && !result?.answer && <SearchLoading />}
+
+            {!hasMessages && !loading && !error && (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-green-1/50 text-lg font-light">
+                  Inicie uma nova conversa ou selecione uma do histórico
+                </p>
+              </div>
             )}
 
             {/* Bloco de feedback: Pós-busca e com geração finalizada */}
@@ -276,7 +294,7 @@ export function Dashboard() {
               <div className="flex justify-start w-full pt-2 pb-4 shrink-0 animate-in fade-in duration-500">
                 {isSubmitted ? (
                   <h2 className="flex items-center justify-center text-center font-medium w-56 h-24 p-4 bg-li text-md text-green-1 shadow-md rounded-t-2xl rounded-br-2xl border border-li/50">
-                    Obrigado(a) pelo seu feedback!
+                    Agradecemos seu feedback!
                   </h2>
                 ) : (
                   <FeedbackRating
