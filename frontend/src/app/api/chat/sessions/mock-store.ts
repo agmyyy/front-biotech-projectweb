@@ -3,6 +3,10 @@ export interface MockMessage {
   role: "user" | "assistant" | "system";
   content: string;
   createdAt: string;
+  suggestions?: string[];
+  justifications?: string[];
+  sources?: string[];
+  clarifications?: string[];
 }
 
 export interface MockSession {

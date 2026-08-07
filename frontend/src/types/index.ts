@@ -4,6 +4,10 @@ export interface ChatMessage {
   content: string;
   createdAt?: string;
   rating?: number;
+  suggestions?: string[];
+  justifications?: string[];
+  sources?: string[];
+  clarifications?: string[];
 }
 
 export interface ChatSession {
@@ -45,7 +49,16 @@ export interface SidebarState {
 }
 
 export interface StreamChunk {
-  type: "chunk" | "done" | "error";
+  type:
+    | "chunk"
+    | "done"
+    | "error"
+    | "suggestion_chunk"
+    | "suggestion_done"
+    | "justification_chunk"
+    | "justification_done"
+    | "source_chunk"
+    | "source_done";
   content?: string;
   sources?: string[];
   suggestions?: string[];

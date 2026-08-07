@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { searchService } from "@/services/search-service";
 import type { SearchResponse } from "@/types";
 
+export type StreamingPhase = "summary" | "suggestions" | "justifications" | "sources" | "done";
+
 interface UseSearchReturn {
   query: string;
   setQuery: (query: string) => void;
@@ -17,6 +19,11 @@ interface UseSearchReturn {
   ) => Promise<SearchResponse | null>;
   clearSearch: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  displayedSummary: string;
+  displayedSuggestions: string[];
+  displayedJustifications: string[];
+  displayedSources: string[];
+  currentPhase: StreamingPhase;
 }
 
 export function useSearch(): UseSearchReturn {
@@ -24,6 +31,11 @@ export function useSearch(): UseSearchReturn {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [displayedSummary, setDisplayedSummary] = useState("");
+  const [displayedSuggestions, setDisplayedSuggestions] = useState<string[]>([]);
+  const [displayedJustifications, setDisplayedJustifications] = useState<string[]>([]);
+  const [displayedSources, setDisplayedSources] = useState<string[]>([]);
+  const [currentPhase, setCurrentPhase] = useState<StreamingPhase>("summary");
 
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -50,13 +62,23 @@ export function useSearch(): UseSearchReturn {
       setError(null);
       setQuery(cleanedText);
       setResult(null);
+      setDisplayedSummary("");
+      setDisplayedSuggestions([]);
+      setDisplayedJustifications([]);
+      setDisplayedSources([]);
+      setCurrentPhase("summary");
 
       let accumulatedSummary = "";
+      let accumulatedSuggestions: string[] = [];
+      let accumulatedJustifications: string[] = [];
+      let accumulatedSources: string[] = [];
+      let currentItemIndex = 0;
 
       try {
         await searchService.searchStream(cleanedText, sessionId, {
           onChunk: (chunk) => {
             accumulatedSummary += chunk;
+            setDisplayedSummary(accumulatedSummary);
             setResult((prev) => ({
               ...prev,
               summary: accumulatedSummary,
@@ -66,13 +88,48 @@ export function useSearch(): UseSearchReturn {
               sessionId: prev?.sessionId || sessionId || "",
             }));
           },
+          onSuggestionChunk: (chunk) => {
+            if (accumulatedSuggestions.length === 0) {
+              accumulatedSuggestions = [""];
+              currentItemIndex = 0;
+            }
+            accumulatedSuggestions[currentItemIndex] += chunk;
+            setDisplayedSuggestions([...accumulatedSuggestions]);
+          },
+          onSuggestionDone: () => {
+            setCurrentPhase("justifications");
+            currentItemIndex = 0;
+          },
+          onJustificationChunk: (chunk) => {
+            if (accumulatedJustifications.length === 0) {
+              accumulatedJustifications = [""];
+              currentItemIndex = 0;
+            }
+            accumulatedJustifications[currentItemIndex] += chunk;
+            setDisplayedJustifications([...accumulatedJustifications]);
+          },
+          onJustificationDone: () => {
+            setCurrentPhase("sources");
+            currentItemIndex = 0;
+          },
+          onSourceChunk: (chunk) => {
+            if (accumulatedSources.length === 0) {
+              accumulatedSources = [""];
+              currentItemIndex = 0;
+            }
+            accumulatedSources[currentItemIndex] += chunk;
+            setDisplayedSources([...accumulatedSources]);
+          },
+          onSourceDone: () => {
+            setCurrentPhase("done");
+          },
           onDone: (data) => {
             const finalResponse: SearchResponse = {
               summary: accumulatedSummary,
-              sources: data.sources,
-              suggestions: data.suggestions,
-              justifications: data.justifications,
-              clarifications: data.clarifications,
+              sources: accumulatedSources,
+              suggestions: accumulatedSuggestions,
+              justifications: accumulatedJustifications,
+              clarifications: undefined,
               sessionId: data.sessionId,
             };
             finalResultRef.current = finalResponse;
@@ -106,6 +163,11 @@ export function useSearch(): UseSearchReturn {
     setError(null);
     setLoading(false);
     finalResultRef.current = null;
+    setDisplayedSummary("");
+    setDisplayedSuggestions([]);
+    setDisplayedJustifications([]);
+    setDisplayedSources([]);
+    setCurrentPhase("summary");
 
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -131,5 +193,10 @@ export function useSearch(): UseSearchReturn {
     executeSearch,
     clearSearch,
     inputRef,
+    displayedSummary,
+    displayedSuggestions,
+    displayedJustifications,
+    displayedSources,
+    currentPhase,
   };
 }

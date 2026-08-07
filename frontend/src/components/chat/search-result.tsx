@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeedbackRating } from "@/components/feedback/feedback-rating";
 import type { SearchResponse } from "@/types";
+import type { StreamingPhase } from "@/hooks/control/use-search";
 
 interface SearchResultStructuredProps {
   result: SearchResponse;
@@ -12,6 +13,11 @@ interface SearchResultStructuredProps {
   onComplete?: () => void;
   onFeedback?: (rating: number) => void;
   animated?: boolean;
+  displayedSummary?: string;
+  displayedSuggestions?: string[];
+  displayedJustifications?: string[];
+  displayedSources?: string[];
+  currentPhase?: StreamingPhase;
 }
 
 interface SearchResultLegacyProps {
@@ -42,21 +48,35 @@ function SearchResultStructured({
   onComplete,
   onFeedback,
   animated = true,
+  displayedSummary: externalSummary,
+  displayedSuggestions: externalSuggestions,
+  displayedJustifications: externalJustifications,
+  displayedSources: externalSources,
+  currentPhase: externalPhase,
 }: SearchResultStructuredProps) {
-  const [displayedSummary, setDisplayedSummary] = useState("");
-  const prevSummaryRef = useRef("");
-  const onCompleteRef = useRef(onComplete);
+  const [internalSummary, setInternalSummary] = useState("");
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const onCompleteRef = useRef(onComplete);
 
   onCompleteRef.current = onComplete;
 
+  // Use external data when streaming, fall back to result for persisted messages
+  const displayedSummary = animated ? (externalSummary ?? internalSummary) : result.summary;
+  const displayedSuggestions = animated ? (externalSuggestions ?? []) : result.suggestions;
+  const displayedJustifications = animated ? (externalJustifications ?? []) : result.justifications;
+  const displayedSources = animated ? (externalSources ?? []) : result.sources;
+  const currentPhase = externalPhase ?? "done";
+
+  // Typewriter for summary (for legacy support when hook doesn't provide it)
+  const prevSummaryRef = useRef("");
+
   useEffect(() => {
-    if (!animated) return;
+    if (!animated || externalSummary !== undefined) return;
 
     const summary = result.summary;
     if (!summary) {
-      setDisplayedSummary("");
+      setInternalSummary("");
       prevSummaryRef.current = "";
       return;
     }
@@ -72,7 +92,7 @@ function SearchResultStructured({
       currentPosition = prevSummary.length;
     } else if (isNewSearch) {
       currentPosition = 0;
-      setDisplayedSummary("");
+      setInternalSummary("");
     } else {
       return;
     }
@@ -82,7 +102,7 @@ function SearchResultStructured({
 
     const timer = setInterval(() => {
       if (currentPosition < summary.length) {
-        setDisplayedSummary(summary.substring(0, currentPosition + 1));
+        setInternalSummary(summary.substring(0, currentPosition + 1));
         currentPosition++;
       } else {
         clearInterval(timer);
@@ -91,7 +111,13 @@ function SearchResultStructured({
     }, speed);
 
     return () => clearInterval(timer);
-  }, [result.summary, animated]);
+  }, [result.summary, animated, externalSummary]);
+
+  useEffect(() => {
+    if (currentPhase === "done" && animated) {
+      onCompleteRef.current?.();
+    }
+  }, [currentPhase, animated]);
 
   const handleFeedback = (rating: number) => {
     setFeedbackGiven(true);
@@ -100,12 +126,14 @@ function SearchResultStructured({
 
   if (isLoading) return null;
 
-  const isStreamingComplete = displayedSummary.length === result.summary.length;
+  const isStreamingComplete = animated ? currentPhase === "done" : true;
 
   const hasStructuredData =
     result.suggestions.length > 0 ||
     result.justifications.length > 0 ||
     result.sources.length > 0;
+
+  const showCursor = animated && !isStreamingComplete;
 
   return (
     <div className="flex justify-center w-full py-4">
@@ -113,82 +141,93 @@ function SearchResultStructured({
         <p
           className={cn(
             "leading-relaxed font-normal text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
-            animated &&
-              !isStreamingComplete &&
+            showCursor && currentPhase === "summary" &&
               "after:content-['|'] after:animate-pulse after:ml-0.5 after:text-green-1",
           )}
         >
-          {animated ? displayedSummary : result.summary}
+          {displayedSummary}
         </p>
 
-        {hasStructuredData && isStreamingComplete && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-            {result.suggestions.length > 0 && (
-              <Section title="Sugestões de Formulação">
-                <ul className="space-y-1.5">
-                  {result.suggestions.map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
-                    >
-                      <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1/40" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-
-            {result.justifications.length > 0 && (
-              <Section title="Justificativas">
-                <ul className="space-y-1.5">
-                  {result.justifications.map((item, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
-                    >
-                      <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-
-            {result.sources.length > 0 && (
-              <Section title="Fontes">
-                <button
-                  onClick={() => setSourcesExpanded(!sourcesExpanded)}
-                  className="flex items-center gap-1 text-sm font-normal text-green-1 hover:text-green-1/70 transition-colors mb-2"
+        {displayedSuggestions.length > 0 && (
+          <Section title="Sugestoes de Formulação">
+            <ul className="space-y-1.5">
+              {displayedSuggestions.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
                 >
-                  {sourcesExpanded ? (
-                    <ChevronUp size={14} />
-                  ) : (
-                    <ChevronDown size={14} />
+                  <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1/40" />
+                  <span>
+                    {item}
+                    {showCursor && currentPhase === "suggestions" && i === displayedSuggestions.length - 1 && (
+                      <span className="animate-pulse ml-0.5 text-green-1">|</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {displayedJustifications.length > 0 && (
+          <Section title="Justificativas">
+            <ul className="space-y-1.5">
+              {displayedJustifications.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
+                >
+                  <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1" />
+                  <span>
+                    {item}
+                    {showCursor && currentPhase === "justifications" && i === displayedJustifications.length - 1 && (
+                      <span className="animate-pulse ml-0.5 text-green-1">|</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {displayedSources.length > 0 && (
+          <Section title="Fontes">
+            <button
+              onClick={() => setSourcesExpanded(!sourcesExpanded)}
+              className="flex items-center gap-1 text-sm font-normal text-green-1 hover:text-green-1/70 transition-colors mb-2"
+            >
+              {sourcesExpanded ? (
+                <ChevronUp size={14} />
+              ) : (
+                <ChevronDown size={14} />
+              )}
+              {sourcesExpanded
+                ? "Ocultar"
+                : `${result.sources.length} referencia(s)`}
+            </button>
+            <ul className="space-y-1">
+              {(sourcesExpanded ? displayedSources : displayedSources.slice(0, 2)).map((source, i) => (
+                <li
+                  key={i}
+                  className="text-sm font-normal text-green-1 leading-relaxed pl-3 border-l border-green-1/10"
+                >
+                  {source}
+                  {showCursor && currentPhase === "sources" && i === displayedSources.length - 1 && (
+                    <span className="animate-pulse ml-0.5 text-green-1">|</span>
                   )}
-                  {sourcesExpanded
-                    ? "Ocultar"
-                    : `${result.sources.length} referencia(s)`}
-                </button>
-                {sourcesExpanded && (
-                  <ul className="space-y-1 animate-in fade-in duration-200">
-                    {result.sources.map((source, i) => (
-                      <li
-                        key={i}
-                        className="text-sm font-normal text-green-1 leading-relaxed pl-3 border-l border-green-1/10"
-                      >
-                        {source}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Section>
+                </li>
+              ))}
+            </ul>
+            {!sourcesExpanded && result.sources.length > 2 && (
+              <p className="text-xs text-green-1/40 mt-1">
+                +{result.sources.length - 2} mais...
+              </p>
             )}
-          </div>
+          </Section>
         )}
 
         {result.clarifications && result.clarifications.length > 0 && (
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-li/50 border-li animate-in fade-in duration-300">
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-li/50 border border-li/50 animate-in fade-in duration-300">
             <MessageCircle
               size={16}
               className="shrink-0 mt-0.5 text-green-1/50"

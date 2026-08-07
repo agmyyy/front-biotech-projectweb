@@ -31,6 +31,11 @@ export function Dashboard() {
     executeSearch,
     clearSearch,
     inputRef,
+    displayedSummary,
+    displayedSuggestions,
+    displayedJustifications,
+    displayedSources,
+    currentPhase,
   } = useSearch();
 
   const {
@@ -128,6 +133,10 @@ export function Dashboard() {
             role: "assistant",
             content: searchResult.summary,
             createdAt: new Date().toISOString(),
+            suggestions: searchResult.suggestions,
+            justifications: searchResult.justifications,
+            sources: searchResult.sources,
+            clarifications: searchResult.clarifications,
           },
         ]);
       }
@@ -260,6 +269,19 @@ export function Dashboard() {
               persistedMessages.map((msg, index) =>
                 msg.role === "user" ? (
                   <SearchInput key={msg.id || index} text={msg.content} />
+                ) : msg.suggestions ? (
+                  <SearchResult
+                    key={msg.id || index}
+                    result={{
+                      summary: msg.content,
+                      suggestions: msg.suggestions,
+                      justifications: msg.justifications ?? [],
+                      sources: msg.sources ?? [],
+                      clarifications: msg.clarifications,
+                      sessionId: activeSession?.id ?? "",
+                    }}
+                    animated={false}
+                  />
                 ) : (
                   <SearchResult
                     key={msg.id || index}
@@ -276,6 +298,11 @@ export function Dashboard() {
                 animated={true}
                 onComplete={completeGeneration}
                 onFeedback={handleFeedback}
+                displayedSummary={displayedSummary}
+                displayedSuggestions={displayedSuggestions}
+                displayedJustifications={displayedJustifications}
+                displayedSources={displayedSources}
+                currentPhase={currentPhase}
               />
             )}
 

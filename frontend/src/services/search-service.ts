@@ -5,13 +5,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface SearchStreamCallbacks {
   onChunk: (text: string) => void;
-  onDone: (data: {
-    sources: string[];
-    suggestions: string[];
-    justifications: string[];
-    clarifications?: string[];
-    sessionId: string;
-  }) => void;
+  onSuggestionChunk: (text: string) => void;
+  onSuggestionDone: () => void;
+  onJustificationChunk: (text: string) => void;
+  onJustificationDone: () => void;
+  onSourceChunk: (text: string) => void;
+  onSourceDone: () => void;
+  onDone: (data: { sessionId: string }) => void;
   signal?: AbortSignal;
 }
 
@@ -71,16 +71,31 @@ export const searchService = {
         try {
           const event: StreamChunk = JSON.parse(jsonStr);
 
-          if (event.type === 'chunk' && event.content) {
-            callbacks.onChunk(event.content);
-          } else if (event.type === 'done') {
-            callbacks.onDone({
-              sources: event.sources || [],
-              suggestions: event.suggestions || [],
-              justifications: event.justifications || [],
-              clarifications: event.clarifications,
-              sessionId: event.sessionId || '',
-            });
+          switch (event.type) {
+            case 'chunk':
+              if (event.content) callbacks.onChunk(event.content);
+              break;
+            case 'suggestion_chunk':
+              if (event.content) callbacks.onSuggestionChunk(event.content);
+              break;
+            case 'suggestion_done':
+              callbacks.onSuggestionDone();
+              break;
+            case 'justification_chunk':
+              if (event.content) callbacks.onJustificationChunk(event.content);
+              break;
+            case 'justification_done':
+              callbacks.onJustificationDone();
+              break;
+            case 'source_chunk':
+              if (event.content) callbacks.onSourceChunk(event.content);
+              break;
+            case 'source_done':
+              callbacks.onSourceDone();
+              break;
+            case 'done':
+              callbacks.onDone({ sessionId: event.sessionId || '' });
+              break;
           }
         } catch {
           // Ignora linhas malformadas

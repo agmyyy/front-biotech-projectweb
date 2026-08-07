@@ -119,21 +119,48 @@ async function streamSearchResponse(
 
   const finalSessionId = sessionId || crypto.randomUUID();
 
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const send = (data: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+
+  // 1. Stream summary
   const words = summary.split(/(\s+)/);
   for (const word of words) {
-    const chunk = JSON.stringify({ type: "chunk", content: word });
-    controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
-    await new Promise((resolve) => setTimeout(resolve, 30 + Math.random() * 40));
+    send({ type: "chunk", content: word });
+    await delay(30 + Math.random() * 40);
   }
 
-  const doneEvent = JSON.stringify({
-    type: "done",
-    sources,
-    suggestions,
-    justifications,
-    sessionId: finalSessionId,
-  });
-  controller.enqueue(encoder.encode(`data: ${doneEvent}\n\n`));
+  // 2. Stream suggestions
+  for (const suggestion of suggestions) {
+    const suggestionWords = suggestion.split(/(\s+)/);
+    for (const word of suggestionWords) {
+      send({ type: "suggestion_chunk", content: word });
+      await delay(6);
+    }
+  }
+  send({ type: "suggestion_done" });
+
+  // 3. Stream justifications
+  for (const justification of justifications) {
+    const justificationWords = justification.split(/(\s+)/);
+    for (const word of justificationWords) {
+      send({ type: "justification_chunk", content: word });
+      await delay(6);
+    }
+  }
+  send({ type: "justification_done" });
+
+  // 4. Stream sources
+  for (const source of sources) {
+    const sourceWords = source.split(/(\s+)/);
+    for (const word of sourceWords) {
+      send({ type: "source_chunk", content: word });
+      await delay(6);
+    }
+  }
+  send({ type: "source_done" });
+
+  // 5. Done event
+  send({ type: "done", sessionId: finalSessionId });
 }
 
 async function getSearchHistory(sessionId: string) {
