@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeedbackRating } from "@/components/feedback/feedback-rating";
 import type { SearchResponse } from "@/types";
@@ -61,14 +61,18 @@ function SearchResultStructured({
 
   onCompleteRef.current = onComplete;
 
-  // Use external data when streaming, fall back to result for persisted messages
-  const displayedSummary = animated ? (externalSummary ?? internalSummary) : result.summary;
-  const displayedSuggestions = animated ? (externalSuggestions ?? []) : result.suggestions;
-  const displayedJustifications = animated ? (externalJustifications ?? []) : result.justifications;
+  const displayedSummary = animated
+    ? (externalSummary ?? internalSummary)
+    : result.summary;
+  const displayedSuggestions = animated
+    ? (externalSuggestions ?? [])
+    : result.suggestions;
+  const displayedJustifications = animated
+    ? (externalJustifications ?? [])
+    : result.justifications;
   const displayedSources = animated ? (externalSources ?? []) : result.sources;
   const currentPhase = externalPhase ?? "done";
 
-  // Typewriter for summary (for legacy support when hook doesn't provide it)
   const prevSummaryRef = useRef("");
 
   useEffect(() => {
@@ -141,7 +145,8 @@ function SearchResultStructured({
         <p
           className={cn(
             "leading-relaxed font-normal text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
-            showCursor && currentPhase === "summary" &&
+            showCursor &&
+              currentPhase === "summary" &&
               "after:content-['|'] after:animate-pulse after:ml-0.5 after:text-green-1",
           )}
         >
@@ -159,9 +164,13 @@ function SearchResultStructured({
                   <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1/40" />
                   <span>
                     {item}
-                    {showCursor && currentPhase === "suggestions" && i === displayedSuggestions.length - 1 && (
-                      <span className="animate-pulse ml-0.5 text-green-1">|</span>
-                    )}
+                    {showCursor &&
+                      currentPhase === "suggestions" &&
+                      i === displayedSuggestions.length - 1 && (
+                        <span className="animate-pulse ml-0.5 text-green-1">
+                          |
+                        </span>
+                      )}
                   </span>
                 </li>
               ))}
@@ -180,9 +189,13 @@ function SearchResultStructured({
                   <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1" />
                   <span>
                     {item}
-                    {showCursor && currentPhase === "justifications" && i === displayedJustifications.length - 1 && (
-                      <span className="animate-pulse ml-0.5 text-green-1">|</span>
-                    )}
+                    {showCursor &&
+                      currentPhase === "justifications" &&
+                      i === displayedJustifications.length - 1 && (
+                        <span className="animate-pulse ml-0.5 text-green-1">
+                          |
+                        </span>
+                      )}
                   </span>
                 </li>
               ))}
@@ -195,26 +208,24 @@ function SearchResultStructured({
             <button
               onClick={() => setSourcesExpanded(!sourcesExpanded)}
               className="flex items-center gap-1 text-sm font-normal text-green-1 hover:text-green-1/70 transition-colors mb-2"
-            >
-              {sourcesExpanded ? (
-                <ChevronUp size={14} />
-              ) : (
-                <ChevronDown size={14} />
-              )}
-              {sourcesExpanded
-                ? "Ocultar"
-                : `${result.sources.length} referencia(s)`}
-            </button>
+            ></button>
             <ul className="space-y-1">
-              {(sourcesExpanded ? displayedSources : displayedSources.slice(0, 2)).map((source, i) => (
+              {(sourcesExpanded
+                ? displayedSources
+                : displayedSources.slice(0, 2)
+              ).map((source, i) => (
                 <li
                   key={i}
                   className="text-sm font-normal text-green-1 leading-relaxed pl-3 border-l border-green-1/10"
                 >
                   {source}
-                  {showCursor && currentPhase === "sources" && i === displayedSources.length - 1 && (
-                    <span className="animate-pulse ml-0.5 text-green-1">|</span>
-                  )}
+                  {showCursor &&
+                    currentPhase === "sources" &&
+                    i === displayedSources.length - 1 && (
+                      <span className="animate-pulse ml-0.5 text-green-1">
+                        |
+                      </span>
+                    )}
                 </li>
               ))}
             </ul>
@@ -226,7 +237,7 @@ function SearchResultStructured({
           </Section>
         )}
 
-        {result.clarifications && result.clarifications.length > 0 && (
+        {/*result.clarifications && result.clarifications.length > 0 && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-li/50 border border-li/50 animate-in fade-in duration-300">
             <MessageCircle
               size={16}
@@ -248,12 +259,14 @@ function SearchResultStructured({
               </ul>
             </div>
           </div>
-        )}
+        )*/}
 
         {hasStructuredData && isStreamingComplete && onFeedback && (
           <div className="flex justify-start animate-in fade-in duration-300">
             {feedbackGiven ? (
-              <p className="text-sm text-green-1/40">Obrigado pelo feedback</p>
+              <p className="text-sm text-green-1/40">
+                Agradecemos seu feedback!
+              </p>
             ) : (
               <FeedbackRating onSelect={handleFeedback} />
             )}
