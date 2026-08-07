@@ -11,7 +11,6 @@ import {
 } from "@/components/sidebar";
 import { SearchInput, SearchResult, SearchLoading } from "@/components/chat";
 import { SearchBar } from "@/components/search";
-import { FeedbackRating } from "@/components/feedback";
 import { useSidebar } from "@/hooks/control/use-sidebar";
 import { useSearch } from "@/hooks/control/use-search";
 import { useChat } from "@/hooks/control/use-chat";
@@ -25,7 +24,6 @@ export function Dashboard() {
   const { isCollapsed, toggleSidebar } = useSidebar();
 
   const {
-    query,
     loading,
     result,
     setResult,
@@ -45,12 +43,12 @@ export function Dashboard() {
     setActiveSession,
   } = useChat();
 
-  const { isGenerationComplete, resetGeneration, completeGeneration } =
+  const { resetGeneration, completeGeneration } =
     useFeedbackControl();
 
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
 
-  const { sendFeedback, resetFeedback, isSubmitting, isSubmitted } =
+  const { sendFeedback, resetFeedback } =
     useFeedbackApi({
       searchId: result?.sessionId || activeSession?.id,
     });
@@ -123,12 +121,12 @@ export function Dashboard() {
 
       const searchResult = await executeSearch(cleanedText, currentSession.id);
 
-      if (searchResult && searchResult.answer) {
+      if (searchResult && searchResult.summary) {
         await appendMessages(currentSession.id, [
           {
             id: pendingAnswerId,
             role: "assistant",
-            content: searchResult.answer,
+            content: searchResult.summary,
             createdAt: new Date().toISOString(),
           },
         ]);
@@ -207,31 +205,28 @@ export function Dashboard() {
 
   // Remove a última resposta persistida enquanto ela está sendo exibida ao vivo,
   // evitando duplicar o balão ao finalizar a busca.
-  const persistedMessages = result?.answer
+  const persistedMessages = result?.summary
     ? sessionMessages.filter(
         (msg, i) =>
           !(
             i === sessionMessages.length - 1 &&
             msg.role === "assistant" &&
-            msg.content === result.answer
+            msg.content === result.summary
           ),
       )
     : sessionMessages;
 
   // Lista unificada: mensagens persistidas + resposta ao vivo (com chave estável)
-  const displayMessages = result?.answer
-    ? [
-        ...persistedMessages,
-        {
-          id: pendingAnswerId,
-          role: "assistant" as const,
-          content: result.answer,
-          createdAt: "",
-        },
-      ]
-    : persistedMessages;
+  const liveMessage = result?.summary
+    ? {
+        id: pendingAnswerId,
+        role: "assistant" as const,
+        content: result.summary,
+        createdAt: "",
+      }
+    : null;
 
-  const hasMessages = displayMessages.length > 0;
+  const hasPersistedMessages = persistedMessages.length > 0;
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
@@ -255,53 +250,42 @@ export function Dashboard() {
             "flex flex-col flex-1 w-full max-w-5xl mx-auto px-4 py-5 overflow-hidden",
           )}
         >
-          {/* CONTAINER ÚNICO DE SCROLL */}
+          {/* CONTAINER UNICO DE SCROLL */}
           <div
             className={cn(
               "flex-1 flex flex-col overflow-y-auto custom-scrollbar px-4 space-y-5",
             )}
           >
-            {hasMessages &&
-              displayMessages.map((msg, index) =>
+            {hasPersistedMessages &&
+              persistedMessages.map((msg, index) =>
                 msg.role === "user" ? (
                   <SearchInput key={msg.id || index} text={msg.content} />
                 ) : (
                   <SearchResult
                     key={msg.id || index}
                     content={msg.content}
-                    animated={msg.id === pendingAnswerId}
-                    onComplete={
-                      msg.id === pendingAnswerId
-                        ? completeGeneration
-                        : undefined
-                    }
+                    animated={false}
                   />
                 ),
               )}
 
-            {loading && !result?.answer && <SearchLoading />}
-
-            {!hasMessages && !loading && !error && (
-              <div className="flex-1 flex items-center justify-center">
-                <p className="text-green-1/50 text-lg font-light">
-                  Inicie uma nova conversa ou selecione uma do histórico
-                </p>
-              </div>
+            {liveMessage && (
+              <SearchResult
+                key={liveMessage.id}
+                result={result!}
+                animated={true}
+                onComplete={completeGeneration}
+                onFeedback={handleFeedback}
+              />
             )}
 
-            {/* Bloco de feedback: Pós-busca e com geração finalizada */}
-            {!loading && query && isGenerationComplete && (
-              <div className="flex justify-start w-full pt-2 pb-4 shrink-0 animate-in fade-in duration-500">
-                {isSubmitted ? (
-                  <h2 className="flex items-center justify-center text-center font-medium w-56 h-24 p-4 bg-li text-md text-green-1 shadow-md rounded-t-2xl rounded-br-2xl border border-li/50">
-                    Agradecemos seu feedback!
-                  </h2>
-                ) : (
-                  <FeedbackRating
-                    onSelect={handleFeedback}
-                    disabled={isSubmitting}
-                  />
-                )}
+            {loading && !result?.summary && <SearchLoading />}
+
+            {!hasPersistedMessages && !liveMessage && !loading && !error && (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-green-1/50 text-lg font-light">
+                  Inicie uma nova conversa ou selecione uma do historico
+                </p>
               </div>
             )}
           </div>

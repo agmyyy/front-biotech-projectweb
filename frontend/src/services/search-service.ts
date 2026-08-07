@@ -3,6 +3,18 @@ import type { SearchRequest, SearchResponse, StreamChunk } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+export interface SearchStreamCallbacks {
+  onChunk: (text: string) => void;
+  onDone: (data: {
+    sources: string[];
+    suggestions: string[];
+    justifications: string[];
+    clarifications?: string[];
+    sessionId: string;
+  }) => void;
+  signal?: AbortSignal;
+}
+
 export const searchService = {
   async search(request: SearchRequest): Promise<SearchResponse> {
     const response = await apiClient.post<SearchResponse>('/search', request);
@@ -21,15 +33,13 @@ export const searchService = {
   async searchStream(
     query: string,
     sessionId: string | undefined,
-    onChunk: (text: string) => void,
-    onDone: (sources: string[], sessionId: string) => void,
-    signal?: AbortSignal,
+    callbacks: SearchStreamCallbacks,
   ): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, sessionId }),
-      signal,
+      signal: callbacks.signal,
     });
 
     if (!response.ok) {
@@ -62,9 +72,15 @@ export const searchService = {
           const event: StreamChunk = JSON.parse(jsonStr);
 
           if (event.type === 'chunk' && event.content) {
-            onChunk(event.content);
+            callbacks.onChunk(event.content);
           } else if (event.type === 'done') {
-            onDone(event.sources || [], event.sessionId || '');
+            callbacks.onDone({
+              sources: event.sources || [],
+              suggestions: event.suggestions || [],
+              justifications: event.justifications || [],
+              clarifications: event.clarifications,
+              sessionId: event.sessionId || '',
+            });
           }
         } catch {
           // Ignora linhas malformadas

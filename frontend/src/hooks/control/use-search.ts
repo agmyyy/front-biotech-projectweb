@@ -27,11 +27,8 @@ export function useSearch(): UseSearchReturn {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const finalResultRef = useRef<SearchResponse | null>(null);
 
-  /**
-   * Dispara o processo de busca com streaming de resposta.
-   * Retorna o resultado final (answer, sources, sessionId) ou null em erro.
-   */
   const executeSearch = useCallback(
     async (text: string, sessionId?: string): Promise<SearchResponse | null> => {
       const cleanedText = text.trim();
@@ -48,39 +45,42 @@ export function useSearch(): UseSearchReturn {
       }
 
       abortControllerRef.current = new AbortController();
+      finalResultRef.current = null;
       setLoading(true);
       setError(null);
       setQuery(cleanedText);
       setResult(null);
 
-      let accumulatedAnswer = "";
-      let finalSources: string[] = [];
-      let finalSessionId = sessionId || "";
+      let accumulatedSummary = "";
 
       try {
-        await searchService.searchStream(
-          cleanedText,
-          sessionId,
-          (chunk) => {
-            accumulatedAnswer += chunk;
+        await searchService.searchStream(cleanedText, sessionId, {
+          onChunk: (chunk) => {
+            accumulatedSummary += chunk;
             setResult((prev) => ({
               ...prev,
-              answer: accumulatedAnswer,
+              summary: accumulatedSummary,
+              suggestions: prev?.suggestions || [],
+              justifications: prev?.justifications || [],
+              sources: prev?.sources || [],
               sessionId: prev?.sessionId || sessionId || "",
             }));
           },
-          (sources, returnedSessionId) => {
-            finalSources = sources;
-            finalSessionId = returnedSessionId || sessionId || "";
-            setResult({
-              answer: accumulatedAnswer,
-              sources,
-              sessionId: finalSessionId,
-            });
+          onDone: (data) => {
+            const finalResponse: SearchResponse = {
+              summary: accumulatedSummary,
+              sources: data.sources,
+              suggestions: data.suggestions,
+              justifications: data.justifications,
+              clarifications: data.clarifications,
+              sessionId: data.sessionId,
+            };
+            finalResultRef.current = finalResponse;
+            setResult(finalResponse);
             setLoading(false);
           },
-          abortControllerRef.current.signal,
-        );
+          signal: abortControllerRef.current.signal,
+        });
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           return null;
@@ -95,25 +95,17 @@ export function useSearch(): UseSearchReturn {
         setLoading(false);
       }
 
-      if (!finalSessionId) return null;
-
-      return {
-        answer: accumulatedAnswer,
-        sources: finalSources,
-        sessionId: finalSessionId,
-      };
+      return finalResultRef.current;
     },
     [],
   );
 
-  /**
-   * Reseta os estados do hook.
-   */
   const clearSearch = useCallback(() => {
     setQuery("");
     setResult(null);
     setError(null);
     setLoading(false);
+    finalResultRef.current = null;
 
     if (inputRef.current) {
       inputRef.current.value = "";

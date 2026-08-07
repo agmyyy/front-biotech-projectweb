@@ -1,8 +1,11 @@
 import { z } from "zod";
 
 export const searchResponseSchema = z.object({
-  answer: z.string({ message: "A resposta deve ser um texto válido." }),
-  sources: z.array(z.string()).optional(),
+  summary: z.string({ message: "O resumo deve ser um texto válido." }),
+  suggestions: z.array(z.string()).default([]),
+  justifications: z.array(z.string()).default([]),
+  sources: z.array(z.string()).default([]),
+  clarifications: z.array(z.string()).optional(),
   sessionId: z.string({ message: "O ID da sessão é obrigatório." }),
 });
 

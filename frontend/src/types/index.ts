@@ -20,8 +20,11 @@ export interface SearchRequest {
 }
 
 export interface SearchResponse {
-  answer: string;
-  sources?: string[];
+  summary: string;
+  suggestions: string[];
+  justifications: string[];
+  sources: string[];
+  clarifications?: string[];
   sessionId: string;
 }
 
@@ -45,6 +48,9 @@ export interface StreamChunk {
   type: "chunk" | "done" | "error";
   content?: string;
   sources?: string[];
+  suggestions?: string[];
+  justifications?: string[];
+  clarifications?: string[];
   sessionId?: string;
   message?: string;
 }
