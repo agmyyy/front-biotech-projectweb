@@ -8,6 +8,8 @@ import { isMessageRated, markMessageAsRated } from "@/lib/feedback-storage";
 import type { SearchResponse } from "@/types";
 import type { StreamingPhase } from "@/hooks/control/use-search";
 
+const TYPEWRITER_SPEED_MS = 20;
+
 interface SearchResultStructuredProps {
   result: SearchResponse;
   isLoading?: boolean;
@@ -107,7 +109,6 @@ function SearchResultStructured({
     }
 
     prevSummaryRef.current = summary;
-    const speed = 6;
 
     const timer = setInterval(() => {
       if (currentPosition < summary.length) {
@@ -117,7 +118,7 @@ function SearchResultStructured({
         clearInterval(timer);
         onCompleteRef.current?.();
       }
-    }, speed);
+    }, TYPEWRITER_SPEED_MS);
 
     return () => clearInterval(timer);
   }, [result.summary, animated, externalSummary]);
@@ -320,7 +321,6 @@ function SearchResultLegacy({
     }
 
     prevContentRef.current = content;
-    const speed = 6;
 
     const timer = setInterval(() => {
       if (currentPosition < content.length) {
@@ -330,7 +330,7 @@ function SearchResultLegacy({
         clearInterval(timer);
         onCompleteRef.current?.();
       }
-    }, speed);
+    }, TYPEWRITER_SPEED_MS);
 
     return () => clearInterval(timer);
   }, [content, animated]);
