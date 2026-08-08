@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeedbackRating } from "@/components/feedback/feedback-rating";
+import { isMessageRated, markMessageAsRated } from "@/lib/feedback-storage";
 import type { SearchResponse } from "@/types";
 import type { StreamingPhase } from "@/hooks/control/use-search";
 
@@ -18,6 +19,7 @@ interface SearchResultStructuredProps {
   displayedJustifications?: string[];
   displayedSources?: string[];
   currentPhase?: StreamingPhase;
+  messageId?: string;
 }
 
 interface SearchResultLegacyProps {
@@ -53,10 +55,13 @@ function SearchResultStructured({
   displayedJustifications: externalJustifications,
   displayedSources: externalSources,
   currentPhase: externalPhase,
+  messageId,
 }: SearchResultStructuredProps) {
+  const [feedbackGiven, setFeedbackGiven] = useState(
+    () => (messageId ? isMessageRated(messageId) : false),
+  );
   const [internalSummary, setInternalSummary] = useState("");
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
-  const [feedbackGiven, setFeedbackGiven] = useState(false);
   const onCompleteRef = useRef(onComplete);
 
   onCompleteRef.current = onComplete;
@@ -125,6 +130,7 @@ function SearchResultStructured({
 
   const handleFeedback = (rating: number) => {
     setFeedbackGiven(true);
+    if (messageId) markMessageAsRated(messageId);
     onFeedback?.(rating);
   };
 

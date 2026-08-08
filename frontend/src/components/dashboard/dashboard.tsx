@@ -281,6 +281,8 @@ export function Dashboard() {
                       sessionId: activeSession?.id ?? "",
                     }}
                     animated={false}
+                    messageId={msg.id}
+                    onFeedback={msg.rating ? undefined : handleFeedback}
                   />
                 ) : (
                   <SearchResult
@@ -303,6 +305,7 @@ export function Dashboard() {
                 displayedJustifications={displayedJustifications}
                 displayedSources={displayedSources}
                 currentPhase={currentPhase}
+                messageId={pendingAnswerId ?? undefined}
               />
             )}
 
