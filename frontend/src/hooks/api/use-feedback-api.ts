@@ -2,12 +2,12 @@
 
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import { apiClient } from "@/services/api-client";
 
 interface UseFeedbackOptions {
   searchId?: string;
 }
 
-//envio da avaliação para o BD
 export function useFeedbackApi({ searchId }: UseFeedbackOptions = {}) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -26,27 +26,20 @@ export function useFeedbackApi({ searchId }: UseFeedbackOptions = {}) {
       setIsSubmitting(true);
 
       try {
-        const response = await fetch("/api/chat/feedback", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            rating,
-            searchId: activeSearchId,
-          }),
+        const response = await apiClient.post("/feedback", {
+          rating,
+          searchId: activeSearchId,
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          // Exibe o erro formatado pelo Zod / Route Handler
+        if (response.error) {
           toast.error("Erro na validação do feedback", {
-            description: data.message || "Tente novamente em instantes.",
+            description: response.error || "Tente novamente em instantes.",
           });
           return;
         }
 
         setIsSubmitted(true);
-        toast.success(data.message || "Obrigado pelo seu feedback!");
+        toast.success("Obrigado pelo seu feedback!");
       } catch (error) {
         console.error("Erro ao enviar feedback:", error);
         toast.error("Erro de conexão", {

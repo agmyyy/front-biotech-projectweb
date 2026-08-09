@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ReactNode, Children, isValidElement, cloneElement } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { User } from "@shared/auth.schema";
+import { User } from "@shared/schemas/auth.schema";
 
 interface SidebarChildProps {
   isCollapsed?: boolean;

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSessionSchema } from "@shared/search.schema";
+import { createSessionSchema } from "@shared/schemas/query.schema";
 import { mockStore } from "./mock-store";
 
 // GET: Listar Sessões

@@ -25,7 +25,7 @@ export function ChatList({
     <div
       className={cn(
         "flex-1 min-h-6 pr-2 overflow-y-auto transition-al duration-300 custom-scrollbar ease-in-out",
-        // Se estiver colapsado, some com a opacidade e desativa cliques (pointer-events-none)
+        // Se estiver colapsado, some com a opacidade e desativa cliques
         isCollapsed ? "opacity-0 pointer-events-none" : "opacity-100",
       )}
     >
@@ -35,7 +35,6 @@ export function ChatList({
             key={session.id}
             className={cn(
               "group relative flex items-center gap-2 p-2 w-full rounded-full cursor-pointer ",
-              // whitespace-nowrap impede que o texto quebre em duas linhas durante a animação de abertura
               "whitespace-nowrap overflow-hidden",
               activeSessionId === session.id ? "bg-li/50" : "hover:bg-li",
             )}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Feedback } from "@shared/feedback.schema";
+import { Feedback } from "@shared/schemas/feedback.schema";
 
 export async function POST(request: NextRequest) {
   try {

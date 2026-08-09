@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { User } from "@shared/auth.schema";
+import { User } from "@shared/schemas/auth.schema";
 
 interface AsideHeaderProps {
   isCollapsed?: boolean;

@@ -1,3 +1,10 @@
+import type {
+  User as SharedUser,
+  SearchInput as SharedSearchInput,
+  SearchResponse as SharedSearchResponse,
+  FeedbackInput as SharedFeedbackInput,
+} from "@shared/schemas";
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -18,29 +25,15 @@ export interface ChatSession {
   updatedAt: string;
 }
 
-export interface SearchRequest {
-  query: string;
-  sessionId?: string;
-}
-
-export interface SearchResponse {
-  summary: string;
-  suggestions: string[];
-  justifications: string[];
-  sources: string[];
-  clarifications?: string[];
-  sessionId: string;
-}
+export type SearchRequest = SharedSearchInput;
+export type SearchResponse = SharedSearchResponse;
+export type FeedbackRating = SharedFeedbackInput;
+export type User = SharedUser;
 
 export interface ApiResponse<T> {
   data?: T;
   error?: string;
   status: number;
-}
-
-export interface FeedbackRating {
-  rating: number;
-  searchId: string;
 }
 
 export interface SidebarState {

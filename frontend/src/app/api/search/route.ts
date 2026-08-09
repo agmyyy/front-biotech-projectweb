@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchSchema } from "@shared/search.schema";
+import { searchSchema } from "@shared/schemas/query.schema";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,10 +11,7 @@ export async function POST(request: NextRequest) {
       const firstMessage =
         result.error.issues[0]?.message || "Dados de busca inválidos.";
 
-      return NextResponse.json(
-        { error: firstMessage },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: firstMessage }, { status: 400 });
     }
 
     const { query, sessionId } = result.data;
@@ -119,17 +116,19 @@ async function streamSearchResponse(
 
   const finalSessionId = sessionId || crypto.randomUUID();
 
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-  const send = (data: object) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+  const delay = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+  const send = (data: object) =>
+    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
 
-  // 1. Stream summary
+  // stream resumo inicial
   const words = summary.split(/(\s+)/);
   for (const word of words) {
     send({ type: "chunk", content: word });
     await delay(30 + Math.random() * 40);
   }
 
-  // 2. Stream suggestions
+  //tream sugestões
   for (const suggestion of suggestions) {
     const suggestionWords = suggestion.split(/(\s+)/);
     for (const word of suggestionWords) {
@@ -139,7 +138,7 @@ async function streamSearchResponse(
   }
   send({ type: "suggestion_done" });
 
-  // 3. Stream justifications
+  // stream justificativas
   for (const justification of justifications) {
     const justificationWords = justification.split(/(\s+)/);
     for (const word of justificationWords) {
@@ -149,7 +148,7 @@ async function streamSearchResponse(
   }
   send({ type: "justification_done" });
 
-  // 4. Stream sources
+  // stream das fontes
   for (const source of sources) {
     const sourceWords = source.split(/(\s+)/);
     for (const word of sourceWords) {
@@ -159,23 +158,33 @@ async function streamSearchResponse(
   }
   send({ type: "source_done" });
 
-  // 5. Done event
   send({ type: "done", sessionId: finalSessionId });
 }
 
 async function getSearchHistory(sessionId: string) {
   return [
     {
-      summary: "Análise prévia do extrato de Lavanda (Lavandula angustifolia) e suas propriedades ansiolíticas em aromaterapia e cosmética funcional.",
+      summary:
+        "Análise prévia do extrato de Lavanda (Lavandula angustifolia) e suas propriedades ansiolíticas em aromaterapia e cosmética funcional.",
       suggestions: ["Óleo essencial relaxante", "Sabonete líquido terapêutico"],
-      justifications: ["Alta aceitação olfativa", "Redução comprovada de marcadores de estresse cutâneo."],
+      justifications: [
+        "Alta aceitação olfativa",
+        "Redução comprovada de marcadores de estresse cutâneo.",
+      ],
       sources: ["Johnson et al. (2023) - Phytotherapy Research"],
       sessionId,
     },
     {
-      summary: "Estudo sobre o uso do Extrato de Chá Verde (Camellia sinensis) no controle da oleosidade e acne inflamatória.",
-      suggestions: ["Gel de limpeza purificante", "Máscara de argila verde detox"],
-      justifications: ["Presença marcante de galato de epigaloquina (EGCG)", "Ação adstringente natural."],
+      summary:
+        "Estudo sobre o uso do Extrato de Chá Verde (Camellia sinensis) no controle da oleosidade e acne inflamatória.",
+      suggestions: [
+        "Gel de limpeza purificante",
+        "Máscara de argila verde detox",
+      ],
+      justifications: [
+        "Presença marcante de galato de epigaloquina (EGCG)",
+        "Ação adstringente natural.",
+      ],
       sources: ["Martinez, R. (2022) - Dermatological Therapy"],
       sessionId,
     },

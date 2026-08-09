@@ -12,10 +12,7 @@ interface UseChatReturn {
   loadSessions: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   createSession: (title: string) => Promise<ChatSession | null>;
-  appendMessages: (
-    sessionId: string,
-    messages: ChatMessage[],
-  ) => Promise<void>;
+  appendMessages: (sessionId: string, messages: ChatMessage[]) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   sendFeedback: (feedback: FeedbackRating) => Promise<void>;
   setActiveSession: (session: ChatSession | null) => void;
@@ -34,7 +31,7 @@ export function useChat(): UseChatReturn {
       const data = await chatService.getSessions();
       setSessions(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar sessões");
+      setError(err instanceof Error ? err.message : "Erro ao carregar o chat");
     } finally {
       setLoading(false);
     }
@@ -47,7 +44,7 @@ export function useChat(): UseChatReturn {
       const session = await chatService.getSession(sessionId);
       setActiveSession(session);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar sessão");
+      setError(err instanceof Error ? err.message : "Erro ao carregar o chat");
     } finally {
       setLoading(false);
     }
@@ -103,7 +100,7 @@ export function useChat(): UseChatReturn {
     [],
   );
 
-  //ainda não foi implementado o exclusão de chats
+  //ainda não foi implementado a exclusão de chats
   const deleteSession = useCallback(
     async (sessionId: string) => {
       setLoading(true);

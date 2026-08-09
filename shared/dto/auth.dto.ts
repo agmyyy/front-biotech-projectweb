@@ -1,7 +1,7 @@
-import { UserRegisterSchema, UserLogInSchema } from "../auth.schema";
+import { UserRegisterSchema, UserLoginSchema } from "../schemas/auth.schema";
 
 export const validateRegister = (data: unknown) =>
   UserRegisterSchema.safeParse(data);
 
 export const validateLogin = (data: unknown) =>
-  UserLogInSchema.safeParse(data);
+  UserLoginSchema.safeParse(data);

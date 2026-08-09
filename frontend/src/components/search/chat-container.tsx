@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { SearchBar } from "./search-bar";
 import { SearchInput } from "../chat";
-import { CreateSessionInput } from "@shared/search.schema";
+import { CreateSessionInput } from "@shared/schemas/query.schema";
 
 interface Message {
   id: string;
@@ -54,15 +54,15 @@ export function ChatContainer({
 
       const newSession: Session = await response.json();
 
-      // 1. Atualiza a sessão ativa na tela imediatamente (sem mudar de página)
+      // Atualiza a sessão ativa na tela imediatamente sem mudar de página
       setCurrentSession(newSession);
 
-      // 2. Notifica o componente pai (para atualizar a lista do histórico na Sidebar)
+      // Notifica o componente pai para atualizar a lista do histórico na Sidebar
       if (onSessionCreated) {
         onSessionCreated(newSession);
       }
 
-      // 3. Atualiza a URL suavemente no navegador sem dar reload (opcional)
+      // Atualiza a URL suavemente no navegador sem dar reload
       window.history.pushState({}, "", `/chat/${newSession.id}`);
     } catch (error) {
       console.error("Erro na requisição:", error);
@@ -88,7 +88,7 @@ export function ChatContainer({
                 /* Exibe a pergunta do usuário com o seu componente SearchInput */
                 <SearchInput text={msg.content} maxLength={150} />
               ) : (
-                /* Exibe a resposta do assistente/sistema */
+                /* Exibe a resposta do sistema */
                 <div className="bg-white/80 p-4 rounded-2xl border border-green-1/20 text-gray-800">
                   {msg.content}
                 </div>

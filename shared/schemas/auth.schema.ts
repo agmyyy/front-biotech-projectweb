@@ -1,21 +1,18 @@
 import { z } from "zod";
 
-// Base reusável para E-mail
-const emailBase = z
+export const emailBase = z
   .string({ message: "O e-mail é obrigatório." })
   .trim()
-  .lowercase()
+  .toLowerCase()
   .email("E-mail inválido.")
   .min(5, "E-mail muito curto.")
   .max(100);
 
-// Base reusável para Senha
-const passwordBase = z
+export const passwordBase = z
   .string({ message: "A senha é obrigatória." })
-  .min(8, "A senha deve conter no mínimo 8 caracteres.")
+  .min(8, "A senha deve ter no mínimo 8 caracteres.")
   .max(100);
 
-/* --- CADASTRO --- */
 export const UserRegisterSchema = z
   .object({
     name: z
@@ -43,15 +40,13 @@ export const UserRegisterSchema = z
     path: ["confirmPassword"],
   });
 
-/* --- LOGIN --- */
-export const UserLogInSchema = z
+export const UserLoginSchema = z
   .object({
     email: emailBase,
     password: passwordBase,
   })
   .strict();
 
-/* --- USUÁRIO AUTENTICADO (Objeto de perfil/Sessão) --- */
 export const UserSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -60,5 +55,5 @@ export const UserSchema = z.object({
 });
 
 export type UserRegisterInput = z.infer<typeof UserRegisterSchema>;
-export type UserLogInInput = z.infer<typeof UserLogInSchema>;
+export type UserLoginInput = z.infer<typeof UserLoginSchema>;
 export type User = z.infer<typeof UserSchema>;

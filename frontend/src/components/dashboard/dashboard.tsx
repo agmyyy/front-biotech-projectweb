@@ -48,15 +48,13 @@ export function Dashboard() {
     setActiveSession,
   } = useChat();
 
-  const { resetGeneration, completeGeneration } =
-    useFeedbackControl();
+  const { resetGeneration, completeGeneration } = useFeedbackControl();
 
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
 
-  const { sendFeedback, resetFeedback } =
-    useFeedbackApi({
-      searchId: result?.sessionId || activeSession?.id,
-    });
+  const { sendFeedback, resetFeedback } = useFeedbackApi({
+    searchId: result?.sessionId || activeSession?.id,
+  });
 
   /**
    * Cria um novo chat limpo na interface.
@@ -110,11 +108,11 @@ export function Dashboard() {
       syncUrl(currentSession.id);
 
       // Gera o id da resposta agora para que a chave do balão ao vivo
-      // seja estável durante a transição ao vivo → persistido.
+      // seja estável durante a transição ao vivo, persistido.
       const pendingAnswerId = crypto.randomUUID();
       setPendingAnswerId(pendingAnswerId);
 
-      // Persiste a pergunta imediatamente no histórico da sessão
+      // Persiste a pergunta no histórico da sessão
       await appendMessages(currentSession.id, [
         {
           id: crypto.randomUUID(),

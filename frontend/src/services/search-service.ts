@@ -17,7 +17,7 @@ export interface SearchStreamCallbacks {
 
 export const searchService = {
   async search(request: SearchRequest): Promise<SearchResponse> {
-    const response = await apiClient.post<SearchResponse>('/search', request);
+    const response = await apiClient.post<SearchResponse>('/queries', request);
 
     if (response.error) {
       throw new Error(response.error);
@@ -35,9 +35,17 @@ export const searchService = {
     sessionId: string | undefined,
     callbacks: SearchStreamCallbacks,
   ): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/search`, {
+    const token = apiClient.getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/queries`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ query, sessionId }),
       signal: callbacks.signal,
     });
@@ -46,66 +54,42 @@ export const searchService = {
       throw new Error('Erro na requisição de busca');
     }
 
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('ReadableStream não disponível');
-    }
+    const data = await response.json();
 
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('data: ')) continue;
-
-        const jsonStr = trimmed.slice(6);
-        try {
-          const event: StreamChunk = JSON.parse(jsonStr);
-
-          switch (event.type) {
-            case 'chunk':
-              if (event.content) callbacks.onChunk(event.content);
-              break;
-            case 'suggestion_chunk':
-              if (event.content) callbacks.onSuggestionChunk(event.content);
-              break;
-            case 'suggestion_done':
-              callbacks.onSuggestionDone();
-              break;
-            case 'justification_chunk':
-              if (event.content) callbacks.onJustificationChunk(event.content);
-              break;
-            case 'justification_done':
-              callbacks.onJustificationDone();
-              break;
-            case 'source_chunk':
-              if (event.content) callbacks.onSourceChunk(event.content);
-              break;
-            case 'source_done':
-              callbacks.onSourceDone();
-              break;
-            case 'done':
-              callbacks.onDone({ sessionId: event.sessionId || '' });
-              break;
-          }
-        } catch {
-          // Ignora linhas malformadas
-        }
+    if (data.summary) {
+      const words = data.summary.split(' ');
+      for (let i = 0; i < words.length; i++) {
+        await new Promise((r) => setTimeout(r, 30));
+        callbacks.onChunk(words[i] + (i < words.length - 1 ? ' ' : ''));
       }
     }
+
+    if (data.suggestions) {
+      for (const suggestion of data.suggestions) {
+        callbacks.onSuggestionChunk(suggestion);
+        callbacks.onSuggestionDone();
+      }
+    }
+
+    if (data.justifications) {
+      for (const justification of data.justifications) {
+        callbacks.onJustificationChunk(justification);
+        callbacks.onJustificationDone();
+      }
+    }
+
+    if (data.sources) {
+      for (const source of data.sources) {
+        callbacks.onSourceChunk(source);
+        callbacks.onSourceDone();
+      }
+    }
+
+    callbacks.onDone({ sessionId: data.sessionId || '' });
   },
 
   async getHistory(sessionId: string): Promise<SearchResponse[]> {
-    const response = await apiClient.get<SearchResponse[]>(`/search/history/${sessionId}`);
+    const response = await apiClient.get<SearchResponse[]>(`/queries?sessionId=${sessionId}`);
 
     if (response.error) {
       throw new Error(response.error);
