@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
+import { Poppins } from "next/font/google";
 // @ts-ignore
 import "./globals.css";
 
@@ -17,6 +18,11 @@ const fontSecondary = Roboto_Mono({
   variable: "--font-secondary",
   display: "swap",
   fallback: ["monospace"],
+});
+
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -40,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${fontPrimary.variable} ${fontSecondary.variable} h-full`}
+      className={`${fontPrimary.variable} ${fontSecondary.variable} ${poppins.className} h-full`}
     >
       <body className="h-full antialiased">{children}</body>
     </html>
