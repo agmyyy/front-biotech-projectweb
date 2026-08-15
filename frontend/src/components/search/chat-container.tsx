@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { SearchBar } from "./search-bar";
 import { SearchInput } from "../chat";
-import { CreateSessionInput } from "@shared/schemas/query.schema";
+import { chatService } from "@/services/chat-service";
 
 interface Message {
   id: string;
@@ -38,34 +38,18 @@ export function ChatContainer({
     setIsLoading(true);
 
     try {
-      const payload: CreateSessionInput = { title: text };
+      const newSession = await chatService.createSession(text);
 
-      const response = await fetch("/api/chat/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        alert(errorData.error || "Erro ao processar a pesquisa.");
-        return;
-      }
-
-      const newSession: Session = await response.json();
-
-      // Atualiza a sessão ativa na tela imediatamente sem mudar de página
       setCurrentSession(newSession);
 
-      // Notifica o componente pai para atualizar a lista do histórico na Sidebar
       if (onSessionCreated) {
         onSessionCreated(newSession);
       }
 
-      // Atualiza a URL suavemente no navegador sem dar reload
       window.history.pushState({}, "", `/chat/${newSession.id}`);
     } catch (error) {
       console.error("Erro na requisição:", error);
+      alert("Erro ao processar a pesquisa.");
     } finally {
       setIsLoading(false);
     }
