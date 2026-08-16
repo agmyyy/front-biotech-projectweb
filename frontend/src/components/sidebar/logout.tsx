@@ -1,18 +1,30 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { authService } from "@/services/auth-service";
 
 interface LogoutProps {
   isCollapsed?: boolean;
 }
 
 export function Logout({ isCollapsed }: LogoutProps) {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    authService.logout();
+    router.push("/login");
+  };
+
   return (
     <footer className="mt-auto py-2 w-full flex">
-      <Link href="/" className={isCollapsed ? "w-full flex" : ""}>
+      <button
+        type="button"
+        onClick={handleLogout}
+        className={isCollapsed ? "w-full flex" : ""}
+      >
         <Button
           type="button"
           variant="ghost"
@@ -40,7 +52,7 @@ export function Logout({ isCollapsed }: LogoutProps) {
             )}
           </div>
         </Button>
-      </Link>
+      </button>
     </footer>
   );
 }

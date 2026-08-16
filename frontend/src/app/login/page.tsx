@@ -1,20 +1,38 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { authService } from "@/services/auth-service";
+import { toast } from "sonner";
 
-export default function Login() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Código para chamar o NestJS no futuro
-    console.log("Tentando fazer login com os dados:");
-    console.log("Email:", email);
-    console.log("Senha:", password);
-  }
+    setLoading(true);
+    setError("");
+
+    try {
+      await authService.login({ email, password });
+      toast.success("Login realizado com sucesso!");
+      const redirect = searchParams.get("redirect") || "/dashboard";
+      router.push(redirect);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao fazer login";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
       <main className="login-container">
@@ -78,7 +96,10 @@ export default function Login() {
   </div>
 
   <p className="forgot-password">Esqueceu a senha?</p>
-  <button className="btn-primary" type="submit">Entrar</button>
+  {error && <p className="text-red-500 text-sm">{error}</p>}
+  <button className="btn-primary" type="submit" disabled={loading}>
+    {loading ? "Entrando..." : "Entrar"}
+  </button>
 </form>
 
           <Link href="/cadastro" className="register-link" style={{ color: "#2C4235", textDecoration: "none" }}>
@@ -86,5 +107,13 @@ export default function Login() {
           </Link>
         </div>
       </main>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

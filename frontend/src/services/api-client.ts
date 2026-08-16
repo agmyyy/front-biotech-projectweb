@@ -1,6 +1,7 @@
 import type { ApiResponse } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const TOKEN_KEY = "biotech_token";
 
 class ApiClient {
   private baseUrl: string;
@@ -8,10 +9,32 @@ class ApiClient {
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
+    this.token = this.getStoredToken();
+  }
+
+  private getStoredToken(): string | null {
+    if (typeof window === "undefined") return null;
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
   }
 
   setToken(token: string | null) {
     this.token = token;
+    if (typeof window === "undefined") return;
+    try {
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+        document.cookie = `${TOKEN_KEY}=${token}; path=/; max-age=86400; SameSite=Lax`;
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+        document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+      }
+    } catch {
+      // localStorage indisponível
+    }
   }
 
   getToken(): string | null {
@@ -51,8 +74,9 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        const message = data.error || data.message || (Array.isArray(data.details) ? data.details.join(', ') : null) || 'Erro na requisição';
         return {
-          error: data.error || 'Erro na requisição',
+          error: message,
           status: response.status,
         };
       }

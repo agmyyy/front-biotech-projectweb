@@ -3,6 +3,7 @@ import { Inter, Roboto_Mono } from "next/font/google";
 import { Poppins } from "next/font/google";
 // @ts-ignore
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const fontPrimary = Inter({
   weight: ["200", "300", "400", "500", "600"],
@@ -48,7 +49,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${fontPrimary.variable} ${fontSecondary.variable} ${poppins.className} h-full`}
     >
-      <body className="h-full antialiased">{children}</body>
+      <body className="h-full antialiased">
+        {children}
+        <Toaster richColors position="top-right" />
+      </body>
     </html>
   );
 }

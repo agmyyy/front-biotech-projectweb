@@ -2,17 +2,35 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { authService } from "@/services/auth-service";
+import { toast } from "sonner";
 
 export default function Cadastro() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
 
-  const handleCadastro = (e: React.FormEvent) => {
+  const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Tentando cadastrar com:");
-    console.log("Nome:", nome, "Email:", email, "Senha:", password);
+    setLoading(true);
+    setError("");
+
+    try {
+      await authService.register({ name: nome, email, password });
+      toast.success("Conta criada com sucesso!");
+      router.push("/dashboard");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao criar conta";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,7 +105,10 @@ export default function Cadastro() {
             </div>
           </div>
 
-          <button className="btn-primary" type="submit">Continuar</button>
+          <button className="btn-primary" type="submit" disabled={loading}>
+            {loading ? "Criando conta..." : "Continuar"}
+          </button>
+          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </form>
 
         <p className="register-link">

@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { v4 as uuidv4 } from 'uuid';
+import { Injectable } from "@nestjs/common";
+import { v4 as uuidv4 } from "uuid";
 
 export interface MockUser {
   id: string;
@@ -28,7 +28,7 @@ export interface MockQuery {
   justifications: string[];
   sources: string[];
   clarifications: string[];
-  status: 'pending' | 'processing' | 'completed' | 'error';
+  status: "pending" | "processing" | "completed" | "error";
   createdAt: string;
 }
 
@@ -44,10 +44,10 @@ export interface MockFeedback {
 export class MockService {
   private users: MockUser[] = [
     {
-      id: 'user-1',
-      name: 'Usuário Demo',
-      email: 'demo@biotech.com',
-      password: 'senha123',
+      id: "user-1",
+      name: "Agmy",
+      email: "agmy@biotech.com",
+      password: "senha123",
       avatarUrl: undefined,
       createdAt: new Date().toISOString(),
     },
@@ -55,9 +55,9 @@ export class MockService {
 
   private sessions: MockSession[] = [
     {
-      id: 'session-1',
-      title: 'Sessão Inicial',
-      userId: 'user-1',
+      id: "session-1",
+      title: "Sessão Inicial",
+      userId: "user-1",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -78,7 +78,7 @@ export class MockService {
     return this.users.find((u) => u.id === id);
   }
 
-  createUser(data: Omit<MockUser, 'id' | 'createdAt'>) {
+  createUser(data: Omit<MockUser, "id" | "createdAt">) {
     const user: MockUser = {
       id: uuidv4(),
       ...data,
@@ -111,7 +111,11 @@ export class MockService {
   updateSession(id: string, data: Partial<MockSession>) {
     const idx = this.sessions.findIndex((s) => s.id === id);
     if (idx === -1) return null;
-    this.sessions[idx] = { ...this.sessions[idx], ...data, updatedAt: new Date().toISOString() };
+    this.sessions[idx] = {
+      ...this.sessions[idx],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
     return this.sessions[idx];
   }
 
@@ -134,7 +138,18 @@ export class MockService {
     return this.queries.find((q) => q.id === id);
   }
 
-  createQuery(data: Omit<MockQuery, 'id' | 'createdAt' | 'suggestions' | 'justifications' | 'sources' | 'clarifications' | 'status'>) {
+  createQuery(
+    data: Omit<
+      MockQuery,
+      | "id"
+      | "createdAt"
+      | "suggestions"
+      | "justifications"
+      | "sources"
+      | "clarifications"
+      | "status"
+    >,
+  ) {
     const query: MockQuery = {
       id: uuidv4(),
       ...data,
@@ -142,7 +157,7 @@ export class MockService {
       justifications: [],
       sources: [],
       clarifications: [],
-      status: 'completed',
+      status: "completed",
       createdAt: new Date().toISOString(),
     };
     this.queries.push(query);
@@ -163,7 +178,7 @@ export class MockService {
     return query;
   }
 
-  createFeedback(data: Omit<MockFeedback, 'id' | 'createdAt'>) {
+  createFeedback(data: Omit<MockFeedback, "id" | "createdAt">) {
     const feedback: MockFeedback = {
       id: uuidv4(),
       ...data,

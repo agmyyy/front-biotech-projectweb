@@ -13,32 +13,26 @@ export const passwordBase = z
   .min(8, "A senha deve ter no mínimo 8 caracteres.")
   .max(100);
 
-export const UserRegisterSchema = z
-  .object({
-    name: z
-      .string({ message: "O nome é obrigatório." })
-      .trim()
-      .min(2, "Nome muito curto.")
-      .max(60, "Nome muito longo.")
-      .regex(/^[A-Za-zÀ-ÿ\s]+$/, "O nome deve conter apenas letras")
-      .transform((val) =>
-        val
-          .split(" ")
-          .filter(Boolean)
-          .map(
-            (word) =>
-              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-          )
-          .join(" "),
-      ),
-    email: emailBase,
-    password: passwordBase,
-    confirmPassword: z.string({ message: "Confirme sua senha." }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "As senhas não coincidem",
-    path: ["confirmPassword"],
-  });
+export const UserRegisterSchema = z.object({
+  name: z
+    .string({ message: "O nome é obrigatório." })
+    .trim()
+    .min(2, "Nome muito curto.")
+    .max(60, "Nome muito longo.")
+    .regex(/^[A-Za-zÀ-ÿ\s]+$/, "O nome deve conter apenas letras")
+    .transform((val) =>
+      val
+        .split(" ")
+        .filter(Boolean)
+        .map(
+          (word) =>
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
+        .join(" "),
+    ),
+  email: emailBase,
+  password: passwordBase,
+});
 
 export const UserLoginSchema = z
   .object({
