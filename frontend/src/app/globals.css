@@ -197,6 +197,20 @@
   padding: 15px 20px;
 }
 
+@keyframes cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 0.35s steps(2) infinite;
+}
+
 @media (max-width: 768px) {
   .login-container {
     display: flex;

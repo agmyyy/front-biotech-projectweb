@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeedbackRating } from "@/components/feedback/feedback-rating";
 import { isMessageRated, markMessageAsRated } from "@/lib/feedback-storage";
+import { useTypewriter } from "@/hooks/use-typewriter";
 import type { SearchResponse } from "@/types";
 import type { StreamingPhase } from "@/hooks/control/use-search";
-
-const TYPEWRITER_SPEED_MS = 20;
 
 interface SearchResultStructuredProps {
   result: SearchResponse;
@@ -62,14 +61,17 @@ function SearchResultStructured({
   const [feedbackGiven, setFeedbackGiven] = useState(
     () => (messageId ? isMessageRated(messageId) : false),
   );
-  const [internalSummary, setInternalSummary] = useState("");
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
-  const onCompleteRef = useRef(onComplete);
 
-  onCompleteRef.current = onComplete;
+  const sourceText = animated ? result.summary : result.summary;
+  const { displayedText: typewriterSummary } = useTypewriter({
+    text: sourceText,
+    enabled: animated && externalSummary === undefined,
+    onComplete,
+  });
 
   const displayedSummary = animated
-    ? (externalSummary ?? internalSummary)
+    ? (externalSummary ?? typewriterSummary)
     : result.summary;
   const displayedSuggestions = animated
     ? (externalSuggestions ?? [])
@@ -79,55 +81,6 @@ function SearchResultStructured({
     : result.justifications;
   const displayedSources = animated ? (externalSources ?? []) : result.sources;
   const currentPhase = externalPhase ?? "done";
-
-  const prevSummaryRef = useRef("");
-
-  useEffect(() => {
-    if (!animated || externalSummary !== undefined) return;
-
-    const summary = result.summary;
-    if (!summary) {
-      setInternalSummary("");
-      prevSummaryRef.current = "";
-      return;
-    }
-
-    const prevSummary = prevSummaryRef.current;
-    const isStreaming =
-      summary.startsWith(prevSummary) && summary.length > prevSummary.length;
-    const isNewSearch =
-      !summary.startsWith(prevSummary) || summary.length < prevSummary.length;
-
-    let currentPosition: number;
-    if (isStreaming) {
-      currentPosition = prevSummary.length;
-    } else if (isNewSearch) {
-      currentPosition = 0;
-      setInternalSummary("");
-    } else {
-      return;
-    }
-
-    prevSummaryRef.current = summary;
-
-    const timer = setInterval(() => {
-      if (currentPosition < summary.length) {
-        setInternalSummary(summary.substring(0, currentPosition + 1));
-        currentPosition++;
-      } else {
-        clearInterval(timer);
-        onCompleteRef.current?.();
-      }
-    }, TYPEWRITER_SPEED_MS);
-
-    return () => clearInterval(timer);
-  }, [result.summary, animated, externalSummary]);
-
-  useEffect(() => {
-    if (currentPhase === "done" && animated) {
-      onCompleteRef.current?.();
-    }
-  }, [currentPhase, animated]);
 
   const handleFeedback = (rating: number) => {
     setFeedbackGiven(true);
@@ -154,7 +107,7 @@ function SearchResultStructured({
             "leading-relaxed font-normal text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
             showCursor &&
               currentPhase === "summary" &&
-              "after:content-['|'] after:animate-pulse after:ml-0.5 after:text-green-1",
+              "after:content-['█'] after:animate-cursor-blink after:ml-0.5 after:text-green-1 after:text-sm",
           )}
         >
           {displayedSummary}
@@ -174,8 +127,8 @@ function SearchResultStructured({
                     {showCursor &&
                       currentPhase === "suggestions" &&
                       i === displayedSuggestions.length - 1 && (
-                        <span className="animate-pulse ml-0.5 text-green-1">
-                          |
+                        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
+                          █
                         </span>
                       )}
                   </span>
@@ -199,8 +152,8 @@ function SearchResultStructured({
                     {showCursor &&
                       currentPhase === "justifications" &&
                       i === displayedJustifications.length - 1 && (
-                        <span className="animate-pulse ml-0.5 text-green-1">
-                          |
+                        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
+                          █
                         </span>
                       )}
                   </span>
@@ -226,13 +179,13 @@ function SearchResultStructured({
                   className="text-sm font-normal text-green-1 leading-relaxed pl-3 border-l border-green-1/10"
                 >
                   {source}
-                  {showCursor &&
-                    currentPhase === "sources" &&
-                    i === displayedSources.length - 1 && (
-                      <span className="animate-pulse ml-0.5 text-green-1">
-                        |
-                      </span>
-                    )}
+                    {showCursor &&
+                      currentPhase === "sources" &&
+                      i === displayedSources.length - 1 && (
+                        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
+                          █
+                        </span>
+                      )}
                 </li>
               ))}
             </ul>
@@ -290,50 +243,11 @@ function SearchResultLegacy({
   onComplete,
   animated = true,
 }: SearchResultLegacyProps) {
-  const [displayedText, setDisplayedText] = useState("");
-  const prevContentRef = useRef("");
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
-
-  useEffect(() => {
-    if (!animated) return;
-
-    if (!content) {
-      setDisplayedText("");
-      prevContentRef.current = "";
-      return;
-    }
-
-    const prevContent = prevContentRef.current;
-    const isStreaming =
-      content.startsWith(prevContent) && content.length > prevContent.length;
-    const isNewSearch =
-      !content.startsWith(prevContent) || content.length < prevContent.length;
-
-    let currentPosition: number;
-    if (isStreaming) {
-      currentPosition = prevContent.length;
-    } else if (isNewSearch) {
-      currentPosition = 0;
-      setDisplayedText("");
-    } else {
-      return;
-    }
-
-    prevContentRef.current = content;
-
-    const timer = setInterval(() => {
-      if (currentPosition < content.length) {
-        setDisplayedText(content.substring(0, currentPosition + 1));
-        currentPosition++;
-      } else {
-        clearInterval(timer);
-        onCompleteRef.current?.();
-      }
-    }, TYPEWRITER_SPEED_MS);
-
-    return () => clearInterval(timer);
-  }, [content, animated]);
+  const { displayedText } = useTypewriter({
+    text: content,
+    enabled: animated,
+    onComplete,
+  });
 
   if (isLoading) return null;
 
@@ -347,7 +261,7 @@ function SearchResultLegacy({
             "leading-relaxed font-normal text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
             animated &&
               displayedText.length < content.length &&
-              "after:content-['|'] after:animate-pulse after:ml-0.5 after:text-green-1",
+              "after:content-['█'] after:animate-cursor-blink after:ml-0.5 after:text-green-1 after:text-sm",
           )}
         >
           {displayText}
