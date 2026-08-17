@@ -113,7 +113,7 @@ function SearchResultStructured({
           {displayedSummary}
         </p>
 
-        {displayedSuggestions.length > 0 && (
+        {displayedSuggestions.length > 0 && currentPhase !== "summary" && (
           <Section title="Sugestoes de Formulação">
             <ul className="space-y-1.5">
               {displayedSuggestions.map((item, i) => (
@@ -122,23 +122,22 @@ function SearchResultStructured({
                   className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
                 >
                   <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1/40" />
-                  <span>
-                    {item}
-                    {showCursor &&
-                      currentPhase === "suggestions" &&
-                      i === displayedSuggestions.length - 1 && (
-                        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
-                          █
-                        </span>
-                      )}
-                  </span>
+                  <AnimatedItem
+                    text={item}
+                    enabled={animated}
+                    showCursor={
+                      showCursor &&
+                      currentPhase === "justifications" &&
+                      i === displayedSuggestions.length - 1
+                    }
+                  />
                 </li>
               ))}
             </ul>
           </Section>
         )}
 
-        {displayedJustifications.length > 0 && (
+        {displayedJustifications.length > 0 && (currentPhase === "sources" || currentPhase === "done") && (
           <Section title="Justificativas">
             <ul className="space-y-1.5">
               {displayedJustifications.map((item, i) => (
@@ -147,23 +146,22 @@ function SearchResultStructured({
                   className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
                 >
                   <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1" />
-                  <span>
-                    {item}
-                    {showCursor &&
-                      currentPhase === "justifications" &&
-                      i === displayedJustifications.length - 1 && (
-                        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
-                          █
-                        </span>
-                      )}
-                  </span>
+                  <AnimatedItem
+                    text={item}
+                    enabled={animated}
+                    showCursor={
+                      showCursor &&
+                      currentPhase === "sources" &&
+                      i === displayedJustifications.length - 1
+                    }
+                  />
                 </li>
               ))}
             </ul>
           </Section>
         )}
 
-        {displayedSources.length > 0 && (
+        {displayedSources.length > 0 && currentPhase === "done" && (
           <Section title="Fontes">
             <button
               onClick={() => setSourcesExpanded(!sourcesExpanded)}
@@ -178,14 +176,15 @@ function SearchResultStructured({
                   key={i}
                   className="text-sm font-normal text-green-1 leading-relaxed pl-3 border-l border-green-1/10"
                 >
-                  {source}
-                    {showCursor &&
-                      currentPhase === "sources" &&
-                      i === displayedSources.length - 1 && (
-                        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
-                          █
-                        </span>
-                      )}
+                  <AnimatedItem
+                    text={source}
+                    enabled={animated}
+                    showCursor={
+                      showCursor &&
+                      currentPhase === "done" &&
+                      i === displayedSources.length - 1
+                    }
+                  />
                 </li>
               ))}
             </ul>
@@ -268,6 +267,28 @@ function SearchResultLegacy({
         </p>
       </div>
     </div>
+  );
+}
+
+function AnimatedItem({
+  text,
+  showCursor,
+  enabled = true,
+}: {
+  text: string;
+  showCursor: boolean;
+  enabled?: boolean;
+}) {
+  const { displayedText } = useTypewriter({ text, enabled });
+  return (
+    <span>
+      {displayedText}
+      {showCursor && displayedText.length < text.length && (
+        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
+          █
+        </span>
+      )}
+    </span>
   );
 }
 

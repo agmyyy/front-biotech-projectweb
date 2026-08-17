@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const BASE_SPEED_MS = 22;
-const PUNCTUATION_SPEED_MS = 110;
-const SPACE_AFTER_PUNCTUATION_MS = 70;
+const BASE_SPEED_MS = 33;
+const PUNCTUATION_SPEED_MS = 165;
+const SPACE_AFTER_PUNCTUATION_MS = 105;
 
 const PUNCTUATION_CHARS = new Set([".", ",", "!", "?", ";", ":"]);
 
@@ -84,6 +84,10 @@ export function useTypewriter({
       animate(prev.length, text);
     } else if (!text.startsWith(prev) || text.length < prev.length) {
       prevTextRef.current = text;
+      setDisplayedText("");
+      animate(0, text);
+    } else {
+      prevTextRef.current = "";
       setDisplayedText("");
       animate(0, text);
     }
