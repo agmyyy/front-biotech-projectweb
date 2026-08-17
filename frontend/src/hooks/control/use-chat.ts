@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { chatService } from "@/services/chat-service";
 import type { ChatMessage, ChatSession, FeedbackRating } from "@/types";
 
@@ -13,6 +13,11 @@ interface UseChatReturn {
   loadSession: (sessionId: string) => Promise<void>;
   createSession: (title: string) => Promise<ChatSession | null>;
   appendMessages: (sessionId: string, messages: ChatMessage[]) => Promise<void>;
+  updateMessageRating: (
+    sessionId: string,
+    messageId: string,
+    rating: number,
+  ) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
   sendFeedback: (feedback: FeedbackRating) => Promise<void>;
   setActiveSession: (session: ChatSession | null) => void;
@@ -75,18 +80,30 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
+  const activeSessionRef = useRef<ChatSession | null>(null);
+
+  useEffect(() => {
+    activeSessionRef.current = activeSession;
+  });
+
   const appendMessages = useCallback(
-    async (sessionId: string, messages: ChatMessage[]) => {
-      if (messages.length === 0) return;
+    async (sessionId: string, newMessages: ChatMessage[]) => {
+      if (newMessages.length === 0) return;
 
       try {
-        const updated = await chatService.updateSession(sessionId, {
-          messages,
-        });
+        const existingMessages =
+          activeSessionRef.current?.id === sessionId
+            ? activeSessionRef.current.messages
+            : [];
+        const mergedMessages = [...existingMessages, ...newMessages];
+
+        const updated = await chatService.appendSessionMessages(
+          sessionId,
+          mergedMessages,
+        );
 
         if (!updated) return;
 
-        // Atualiza a sessão na lista do histórico e na sessão ativa
         setSessions((prev) =>
           prev.map((s) => (s.id === sessionId ? updated : s)),
         );
@@ -94,6 +111,39 @@ export function useChat(): UseChatReturn {
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Erro ao salvar mensagens",
+        );
+      }
+    },
+    [],
+  );
+
+  const updateMessageRating = useCallback(
+    async (sessionId: string, messageId: string, rating: number) => {
+      const session =
+        activeSessionRef.current?.id === sessionId
+          ? activeSessionRef.current
+          : null;
+      if (!session) return;
+
+      const updatedMessages = session.messages.map((msg) =>
+        msg.id === messageId ? { ...msg, rating } : msg,
+      );
+
+      try {
+        const updated = await chatService.appendSessionMessages(
+          sessionId,
+          updatedMessages,
+        );
+
+        if (!updated) return;
+
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? updated : s)),
+        );
+        setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Erro ao salvar avaliação",
         );
       }
     },
@@ -141,6 +191,7 @@ export function useChat(): UseChatReturn {
     loadSession,
     createSession,
     appendMessages,
+    updateMessageRating,
     deleteSession,
     sendFeedback,
     setActiveSession,

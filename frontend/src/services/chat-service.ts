@@ -56,6 +56,22 @@ export const chatService = {
     return response.data || null;
   },
 
+  async appendSessionMessages(
+    sessionId: string,
+    messages: ChatMessage[],
+  ): Promise<ChatSession | null> {
+    const response = await apiClient.post<ChatSession>(
+      `/sessions/${sessionId}/messages`,
+      { messages },
+    );
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
+    return response.data || null;
+  },
+
   async deleteSession(sessionId: string): Promise<void> {
     const response = await apiClient.delete(`/sessions/${sessionId}`);
 

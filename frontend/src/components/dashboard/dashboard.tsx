@@ -44,6 +44,7 @@ export function Dashboard() {
     activeSession,
     createSession,
     appendMessages,
+    updateMessageRating,
     deleteSession,
     loadSession,
     setActiveSession,
@@ -220,8 +221,11 @@ export function Dashboard() {
   const handleFeedback = useCallback(
     (rating: number) => {
       sendFeedback(rating);
+      if (activeSession && pendingAnswerId) {
+        updateMessageRating(activeSession.id, pendingAnswerId, rating);
+      }
     },
-    [sendFeedback],
+    [sendFeedback, activeSession, pendingAnswerId, updateMessageRating],
   );
 
   const sessionMessages = activeSession?.messages ?? [];

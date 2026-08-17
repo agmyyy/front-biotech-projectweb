@@ -54,6 +54,18 @@ export class SessionsController {
     return session;
   }
 
+  @Post(':id/messages')
+  appendMessages(
+    @Param('id') id: string,
+    @Body() body: { messages: Array<{ id: string; role: string; content: string; createdAt?: string; rating?: number; suggestions?: string[]; justifications?: string[]; sources?: string[]; clarifications?: string[] }> },
+  ) {
+    const session = this.mockService.appendMessages(id, body.messages as any);
+    if (!session) {
+      throw new NotFoundException('Sessão não encontrada');
+    }
+    return session;
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     const deleted = this.mockService.deleteSession(id);

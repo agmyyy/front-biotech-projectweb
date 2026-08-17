@@ -10,10 +10,23 @@ export interface MockUser {
   createdAt: string;
 }
 
+export interface MockChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  createdAt?: string;
+  rating?: number;
+  suggestions?: string[];
+  justifications?: string[];
+  sources?: string[];
+  clarifications?: string[];
+}
+
 export interface MockSession {
   id: string;
   title: string;
   userId: string;
+  messages: MockChatMessage[];
   createdAt: string;
   updatedAt: string;
 }
@@ -58,6 +71,7 @@ export class MockService {
       id: "session-1",
       title: "Sessão Inicial",
       userId: "user-1",
+      messages: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -101,11 +115,23 @@ export class MockService {
       id: uuidv4(),
       title: data.title,
       userId: data.userId,
+      messages: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     this.sessions.push(session);
     return session;
+  }
+
+  appendMessages(sessionId: string, newMessages: MockChatMessage[]): MockSession | null {
+    const idx = this.sessions.findIndex((s) => s.id === sessionId);
+    if (idx === -1) return null;
+    this.sessions[idx] = {
+      ...this.sessions[idx],
+      messages: newMessages,
+      updatedAt: new Date().toISOString(),
+    };
+    return this.sessions[idx];
   }
 
   updateSession(id: string, data: Partial<MockSession>) {
