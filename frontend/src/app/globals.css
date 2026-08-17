@@ -95,6 +95,7 @@
 .login-container {
   display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
 .left-side {
@@ -201,6 +202,7 @@
     display: flex;
     min-height: 100vh;
     align-items: stretch;
+    overflow: hidden;
   }
 
   .left-side {
