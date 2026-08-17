@@ -21,7 +21,10 @@ function LoginForm() {
     setError("");
 
     try {
-      await authService.login({ email, password });
+      const response = await authService.login({ email, password });
+      if (response.user) {
+        localStorage.setItem("biotech_user", JSON.stringify(response.user));
+      }
       toast.success("Login realizado com sucesso!");
       const redirect = searchParams.get("redirect") || "/dashboard";
       router.push(redirect);

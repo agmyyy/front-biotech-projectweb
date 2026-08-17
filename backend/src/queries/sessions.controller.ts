@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { MockService } from '../database/mock.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import { CreateSessionSchema } from 'shared';
 import { Request } from 'express';
 
 @Controller('sessions')
@@ -35,7 +37,7 @@ export class SessionsController {
   }
 
   @Post()
-  create(@Req() req: Request, @Body() body: { title: string }) {
+  create(@Req() req: Request, @Body(new ZodValidationPipe(CreateSessionSchema)) body: { title: string }) {
     const user = req.user as { id: string };
     return this.mockService.createSession({
       title: body.title,

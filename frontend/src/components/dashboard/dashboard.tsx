@@ -18,10 +18,11 @@ import { useFeedbackApi } from "@/hooks/api/use-feedback-api";
 import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
 
 import { cn } from "@/lib/utils";
+import type { User } from "@shared/schemas/auth.schema";
 
 export function Dashboard() {
   const router = useRouter();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar(false);
 
   const {
     loading,
@@ -51,6 +52,7 @@ export function Dashboard() {
   const { resetGeneration, completeGeneration } = useFeedbackControl();
 
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const { sendFeedback, resetFeedback } = useFeedbackApi({
     searchId: result?.sessionId || activeSession?.id,
@@ -166,6 +168,20 @@ export function Dashboard() {
   );
 
   /**
+   * Lê o usuário do localStorage ao montar.
+   */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("biotech_user");
+      if (stored) {
+        setUser(JSON.parse(stored));
+      }
+    } catch {
+      // JSON inválido ou indisponível
+    }
+  }, []);
+
+  /**
    * Ao montar, restaura a sessão indicada na URL (?chat=id).
    */
   useEffect(() => {
@@ -237,7 +253,7 @@ export function Dashboard() {
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
-      <Sidebar isCollapsed={isCollapsed} onToggle={toggleSidebar}>
+      <Sidebar isCollapsed={isCollapsed} onToggle={toggleSidebar} user={user}>
         <AsideHeader isCollapsed={isCollapsed} />
         <NewChat isCollapsed={isCollapsed} onClick={handleNewChat} />
         <ChatList

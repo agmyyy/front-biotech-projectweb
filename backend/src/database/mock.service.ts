@@ -45,7 +45,7 @@ export class MockService {
   private users: MockUser[] = [
     {
       id: "user-1",
-      name: "Agmy",
+      name: "Maria",
       email: "agmy@biotech.com",
       password: "senha123",
       avatarUrl: undefined,

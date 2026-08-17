@@ -11,10 +11,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private mockService: MockService,
   ) {
     const secret = configService.get<string>('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET não está definido nas variáveis de ambiente');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret || 'fallback-secret',
+      secretOrKey: secret,
     });
   }
 

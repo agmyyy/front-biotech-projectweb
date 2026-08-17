@@ -21,7 +21,10 @@ export default function Cadastro() {
     setError("");
 
     try {
-      await authService.register({ name: nome, email, password });
+      const response = await authService.register({ name: nome, email, password });
+      if (response.user) {
+        localStorage.setItem("biotech_user", JSON.stringify(response.user));
+      }
       toast.success("Conta criada com sucesso!");
       router.push("/dashboard");
     } catch (err) {

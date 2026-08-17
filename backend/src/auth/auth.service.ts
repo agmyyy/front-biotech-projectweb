@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MockService } from '../database/mock.service';
-import { UserRegisterSchema, UserLoginSchema } from 'shared';
 
 export type RegisterInput = {
   name: string;
@@ -22,17 +21,15 @@ export class AuthService {
   ) {}
 
   async register(data: RegisterInput) {
-    const validated = UserRegisterSchema.parse(data);
-
-    const existing = this.mockService.findUserByEmail(validated.email);
+    const existing = this.mockService.findUserByEmail(data.email);
     if (existing) {
       throw new ConflictException('E-mail já está em uso');
     }
 
     const user = this.mockService.createUser({
-      name: validated.name,
-      email: validated.email,
-      password: validated.password,
+      name: data.name,
+      email: data.email,
+      password: data.password,
     });
 
     const token = this.generateToken(user);
@@ -49,14 +46,12 @@ export class AuthService {
   }
 
   async login(data: LoginInput) {
-    const validated = UserLoginSchema.parse(data);
-
-    const user = this.mockService.findUserByEmail(validated.email);
+    const user = this.mockService.findUserByEmail(data.email);
     if (!user) {
       throw new UnauthorizedException('E-mail ou senha incorretos');
     }
 
-    if (user.password !== validated.password) {
+    if (user.password !== data.password) {
       throw new UnauthorizedException('E-mail ou senha incorretos');
     }
 
