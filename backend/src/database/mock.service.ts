@@ -64,6 +64,14 @@ export class MockService {
       avatarUrl: undefined,
       createdAt: new Date().toISOString(),
     },
+    {
+      id: "user-2",
+      name: "Ana",
+      email: "a@gmail.com",
+      password: "senha321",
+      avatarUrl: undefined,
+      createdAt: new Date().toISOString(),
+    },
   ];
 
   private sessions: MockSession[] = [
@@ -123,7 +131,10 @@ export class MockService {
     return session;
   }
 
-  appendMessages(sessionId: string, newMessages: MockChatMessage[]): MockSession | null {
+  appendMessages(
+    sessionId: string,
+    newMessages: MockChatMessage[],
+  ): MockSession | null {
     const idx = this.sessions.findIndex((s) => s.id === sessionId);
     if (idx === -1) return null;
     this.sessions[idx] = {

@@ -74,7 +74,7 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
-        const message = data.error || data.message || (Array.isArray(data.details) ? data.details.join(', ') : null) || 'Erro na requisição';
+        const message = data.message || data.error || (Array.isArray(data.details) ? data.details.join(', ') : null) || 'Erro na requisição';
         return {
           error: message,
           status: response.status,
