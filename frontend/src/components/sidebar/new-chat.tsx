@@ -29,7 +29,7 @@ export function NewChat({ isCollapsed, onClick }: NewChatProps) {
         className="shrink-0"
       />
       {!isCollapsed && (
-        <span className="whitespace-nowrap font-medium overflow-hidden">
+        <span className="whitespace-nowrap font-poppins font-light overflow-hidden">
           Novo chat
         </span>
       )}

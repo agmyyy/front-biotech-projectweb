@@ -34,7 +34,7 @@ export function Sidebar({
         ease: "easeInOut",
       }}
       className={cn(
-        "flex flex-col h-screen bg-aside font-primary relative shrink-0 shadow-lg",
+        "flex flex-col h-screen bg-aside font-poppins font-light relative shrink-0 shadow-lg",
         "border-r border-li",
       )}
     >

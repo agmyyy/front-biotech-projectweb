@@ -24,6 +24,7 @@ const fontSecondary = Roboto_Mono({
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-poppins",
 });
 
 export const metadata: Metadata = {
@@ -47,7 +48,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${fontPrimary.variable} ${fontSecondary.variable} ${poppins.className} h-full`}
+      className={`${fontPrimary.variable} ${fontSecondary.variable} ${poppins.variable} ${poppins.className} h-full`}
     >
       <body className="h-full antialiased">
         {children}

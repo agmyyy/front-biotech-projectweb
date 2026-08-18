@@ -44,7 +44,7 @@ export function Logout({ isCollapsed }: LogoutProps) {
             className="shrink-0"
           />
           {!isCollapsed && (
-            <span className="text-green-1 overflow-hidden">Sair</span>
+            <span className="text-green-1 overflow-hidden font-poppins font-light">Sair</span>
           )}
         </div>
       </Button>

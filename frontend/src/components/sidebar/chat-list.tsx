@@ -40,7 +40,7 @@ export function ChatList({
             )}
             onClick={() => onSelect(session.id)}
           >
-            <span className="flex-1 truncate text-sm font-medium pr-8">
+            <span className="flex-1 truncate text-sm font-poppins font-light pr-8">
               {session.title}
             </span>
             {/* <button

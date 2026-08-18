@@ -3,6 +3,7 @@
 @theme {
   --font-primary: var(--font-primary);
   --font-secondary: var(--font-secondary);
+  --font-poppins: var(--font-poppins);
 
   --font-weight-extralight: 200;
   --font-weight-light: 300;
