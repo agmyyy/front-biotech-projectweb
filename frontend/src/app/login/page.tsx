@@ -25,7 +25,7 @@ function LoginForm() {
       if (response.user) {
         localStorage.setItem("biotech_user", JSON.stringify(response.user));
       }
-      toast.success("Login realizado com sucesso!");
+      // toast.success("Login realizado com sucesso!");
       const redirect = searchParams.get("redirect") || "/dashboard";
       router.push(redirect);
     } catch (err) {
