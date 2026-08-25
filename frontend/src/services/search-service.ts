@@ -51,7 +51,13 @@ export const searchService = {
     });
 
     if (!response.ok) {
-      throw new Error('Erro na requisição de busca');
+      let message = 'Erro na requisição de busca';
+      try {
+        const body = await response.json();
+        if (body.message) message = body.message;
+        else if (body.error) message = body.error;
+      } catch {}
+      throw new Error(message);
     }
 
     const data = await response.json();

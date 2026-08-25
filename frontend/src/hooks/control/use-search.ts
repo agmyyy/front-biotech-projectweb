@@ -52,6 +52,13 @@ export function useSearch(): UseSearchReturn {
         return null;
       }
 
+      if (cleanedText.length > 1000) {
+        setError("Sua pesquisa ultrapassa o limite de 1000 caracteres. Reduza o texto e tente novamente.");
+        setResult(null);
+        setQuery("");
+        return null;
+      }
+
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

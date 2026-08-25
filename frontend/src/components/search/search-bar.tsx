@@ -44,6 +44,7 @@ export function SearchBar({
             "focus:outline-none focus:ring-2 focus:ring-green-1/50 focus:border-transparent",
             "transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
           )}
+          maxLength={1000}
           aria-label="Campo de pesquisa"
         />
       </form>
