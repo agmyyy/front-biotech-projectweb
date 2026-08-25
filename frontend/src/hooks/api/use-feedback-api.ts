@@ -39,7 +39,6 @@ export function useFeedbackApi({ searchId }: UseFeedbackOptions = {}) {
         }
 
         setIsSubmitted(true);
-        toast.success("Obrigado pelo seu feedback!");
       } catch (error) {
         console.error("Erro ao enviar feedback:", error);
         toast.error("Erro de conexão", {
