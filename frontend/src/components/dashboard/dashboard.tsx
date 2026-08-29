@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sidebar,
@@ -16,6 +16,7 @@ import { useSearch } from "@/hooks/control/use-search";
 import { useChat } from "@/hooks/control/use-chat";
 import { useFeedbackApi } from "@/hooks/api/use-feedback-api";
 import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
+import { useAutoScroll } from "@/hooks/use-auto-scroll";
 
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schemas/auth.schema";
@@ -54,6 +55,7 @@ export function Dashboard() {
 
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const { containerRef, autoScrollEnabled, scrollToBottom } = useAutoScroll();
 
   const { sendFeedback, resetFeedback } = useFeedbackApi({
     searchId: result?.sessionId || activeSession?.id,
@@ -244,16 +246,26 @@ export function Dashboard() {
     : sessionMessages;
 
   // Lista unificada: mensagens persistidas + resposta ao vivo (com chave estável)
-  const liveMessage = result?.summary
-    ? {
-        id: pendingAnswerId,
-        role: "assistant" as const,
-        content: result.summary,
-        createdAt: "",
-      }
-    : null;
+  const liveMessage = useMemo(
+    () =>
+      result?.summary
+        ? {
+            id: pendingAnswerId,
+            role: "assistant" as const,
+            content: result.summary,
+            createdAt: "",
+          }
+        : null,
+    [result, pendingAnswerId],
+  );
 
   const hasPersistedMessages = persistedMessages.length > 0;
+
+  useEffect(() => {
+    if (autoScrollEnabled) {
+      scrollToBottom();
+    }
+  }, [persistedMessages.length, liveMessage, autoScrollEnabled, scrollToBottom]);
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
@@ -279,6 +291,7 @@ export function Dashboard() {
         >
           {/* CONTAINER UNICO DE SCROLL */}
           <div
+            ref={containerRef}
             className={cn(
               "flex-1 flex flex-col overflow-y-auto custom-scrollbar px-4 space-y-5",
             )}
