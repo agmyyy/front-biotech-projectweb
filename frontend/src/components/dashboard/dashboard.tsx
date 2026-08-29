@@ -21,9 +21,19 @@ import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schemas/auth.schema";
 
+const MOBILE_BREAKPOINT = 768;
+
 export function Dashboard() {
   const router = useRouter();
-  const { isCollapsed, toggleSidebar } = useSidebar(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const { isCollapsed, toggleSidebar } = useSidebar(isMobile);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const {
     loading,
