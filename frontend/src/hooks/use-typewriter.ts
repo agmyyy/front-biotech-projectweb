@@ -26,23 +26,38 @@ export function useTypewriter({
   enabled = true,
   onComplete,
 }: UseTypewriterOptions) {
-  const [displayedText, setDisplayedText] = useState("");
-  const prevTextRef = useRef("");
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
-
+  const [animatedText, setAnimatedText] = useState("");
+  const [isAnimating, setIsAnimating] = useState(false);
+  const animationPosRef = useRef(0);
   const cleanupRef = useRef<(() => void) | null>(null);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
 
   const animate = useCallback(
     (from: number, target: string) => {
       cleanupRef.current?.();
+
+      if (from >= target.length) {
+        setAnimatedText(target);
+        setIsAnimating(false);
+        animationPosRef.current = 0;
+        onCompleteRef.current?.();
+        return;
+      }
+
+      setIsAnimating(true);
       let pos = from;
       let lastChar: string | undefined = target[pos - 1];
       let timerId: ReturnType<typeof setTimeout>;
 
       const step = () => {
         if (pos >= target.length) {
-          setDisplayedText(target);
+          setAnimatedText(target);
+          setIsAnimating(false);
+          animationPosRef.current = 0;
           onCompleteRef.current?.();
           return;
         }
@@ -50,7 +65,8 @@ export function useTypewriter({
         const delay = getDelay(ch, lastChar);
         lastChar = ch;
         pos++;
-        setDisplayedText(target.substring(0, pos));
+        animationPosRef.current = pos;
+        setAnimatedText(target.substring(0, pos));
         timerId = setTimeout(step, delay);
       };
 
@@ -65,30 +81,25 @@ export function useTypewriter({
   );
 
   useEffect(() => {
-    if (!enabled) {
-      setDisplayedText(text);
-      prevTextRef.current = text;
+    if (!enabled || !text) {
+      cleanupRef.current?.();
+      animationPosRef.current = 0;
       return;
     }
 
-    if (!text) {
-      setDisplayedText("");
-      prevTextRef.current = "";
-      return;
-    }
+    const currentPos = animationPosRef.current;
+    const currentDisplayed = text.substring(0, currentPos);
 
-    const prev = prevTextRef.current;
-
-    if (text.startsWith(prev) && text.length > prev.length) {
-      prevTextRef.current = text;
-      animate(prev.length, text);
-    } else if (!text.startsWith(prev) || text.length < prev.length) {
-      prevTextRef.current = text;
-      setDisplayedText("");
-      animate(0, text);
+    if (text.startsWith(currentDisplayed) && text.length > currentPos) {
+      animate(currentPos, text);
+    } else if (text.length <= currentPos) {
+      setAnimatedText(text);
+      setIsAnimating(false);
+      animationPosRef.current = text.length;
+      cleanupRef.current?.();
     } else {
-      prevTextRef.current = "";
-      setDisplayedText("");
+      animationPosRef.current = 0;
+      setAnimatedText("");
       animate(0, text);
     }
 
@@ -103,5 +114,10 @@ export function useTypewriter({
     };
   }, []);
 
-  return { displayedText };
+  const isActive = enabled && text.length > 0;
+
+  return {
+    displayedText: isActive ? animatedText : text,
+    isTyping: isActive ? isAnimating : false,
+  };
 }

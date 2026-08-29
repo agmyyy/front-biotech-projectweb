@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { FeedbackRating } from "@/components/feedback/feedback-rating";
 import { isMessageRated, markMessageAsRated } from "@/lib/feedback-storage";
@@ -15,10 +14,6 @@ interface SearchResultStructuredProps {
   onComplete?: () => void;
   onFeedback?: (rating: number) => void;
   animated?: boolean;
-  displayedSummary?: string;
-  displayedSuggestions?: string[];
-  displayedJustifications?: string[];
-  displayedSources?: string[];
   currentPhase?: StreamingPhase;
   messageId?: string;
 }
@@ -51,10 +46,6 @@ function SearchResultStructured({
   onComplete,
   onFeedback,
   animated = true,
-  displayedSummary: externalSummary,
-  displayedSuggestions: externalSuggestions,
-  displayedJustifications: externalJustifications,
-  displayedSources: externalSources,
   currentPhase: externalPhase,
   messageId,
 }: SearchResultStructuredProps) {
@@ -63,23 +54,13 @@ function SearchResultStructured({
   );
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
 
-  const sourceText = animated ? result.summary : result.summary;
-  const { displayedText: typewriterSummary } = useTypewriter({
-    text: sourceText,
-    enabled: animated && externalSummary === undefined,
+  const { displayedText: typewriterSummary, isTyping } = useTypewriter({
+    text: result.summary,
+    enabled: animated,
     onComplete,
   });
 
-  const displayedSummary = animated
-    ? (externalSummary ?? typewriterSummary)
-    : result.summary;
-  const displayedSuggestions = animated
-    ? (externalSuggestions ?? [])
-    : result.suggestions;
-  const displayedJustifications = animated
-    ? (externalJustifications ?? [])
-    : result.justifications;
-  const displayedSources = animated ? (externalSources ?? []) : result.sources;
+  const displayedSummary = animated ? typewriterSummary : result.summary;
   const currentPhase = externalPhase ?? "done";
   const isStreamingComplete = animated ? currentPhase === "done" : true;
 
@@ -96,7 +77,7 @@ function SearchResultStructured({
     result.justifications.length > 0 ||
     result.sources.length > 0;
 
-  const showCursor = animated && !isStreamingComplete;
+  const showCursor = animated && (isTyping || !isStreamingComplete);
 
   return (
     <div className="flex justify-center w-full py-4">
@@ -105,63 +86,46 @@ function SearchResultStructured({
           className={cn(
             "leading-relaxed font-normal text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
             showCursor &&
-              currentPhase === "summary" &&
               "after:content-[''] after:animate-cursor-blink after:ml-0.5 after:text-green-1 after:text-sm",
           )}
         >
           {displayedSummary}
         </p>
 
-        {displayedSuggestions.length > 0 && currentPhase !== "summary" && (
+        {result.suggestions.length > 0 && currentPhase !== "summary" && (
           <Section title="Sugestões de Formulação">
             <ul className="space-y-1.5">
-              {displayedSuggestions.map((item, i) => (
+              {result.suggestions.map((item, i) => (
                 <li
                   key={i}
                   className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
                 >
                   <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1/40" />
-                  <AnimatedItem
-                    text={item}
-                    enabled={animated}
-                    showCursor={
-                      showCursor &&
-                      currentPhase === "justifications" &&
-                      i === displayedSuggestions.length - 1
-                    }
-                  />
+                  <span>{item}</span>
                 </li>
               ))}
             </ul>
           </Section>
         )}
 
-        {displayedJustifications.length > 0 &&
+        {result.justifications.length > 0 &&
           (currentPhase === "sources" || currentPhase === "done") && (
             <Section title="Justificativas">
               <ul className="space-y-1.5">
-                {displayedJustifications.map((item, i) => (
+                {result.justifications.map((item, i) => (
                   <li
                     key={i}
                     className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
                   >
                     <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1" />
-                    <AnimatedItem
-                      text={item}
-                      enabled={animated}
-                      showCursor={
-                        showCursor &&
-                        currentPhase === "sources" &&
-                        i === displayedJustifications.length - 1
-                      }
-                    />
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </Section>
           )}
 
-        {displayedSources.length > 0 && currentPhase === "done" && (
+        {result.sources.length > 0 && currentPhase === "done" && (
           <Section title="Fontes">
             <button
               onClick={() => setSourcesExpanded(!sourcesExpanded)}
@@ -169,22 +133,14 @@ function SearchResultStructured({
             ></button>
             <ul className="space-y-1">
               {(sourcesExpanded
-                ? displayedSources
-                : displayedSources.slice(0, 2)
+                ? result.sources
+                : result.sources.slice(0, 2)
               ).map((source, i) => (
                 <li
                   key={i}
                   className="text-sm font-normal text-green-1 leading-relaxed pl-3 border-l border-green-1/10"
                 >
-                  <AnimatedItem
-                    text={source}
-                    enabled={animated}
-                    showCursor={
-                      showCursor &&
-                      currentPhase === "done" &&
-                      i === displayedSources.length - 1
-                    }
-                  />
+                  {source}
                 </li>
               ))}
             </ul>
@@ -196,31 +152,7 @@ function SearchResultStructured({
           </Section>
         )}
 
-        {/*result.clarifications && result.clarifications.length > 0 && (
-          <div className="flex items-start gap-2 p-3 rounded-xl bg-li/50 border border-li/50 animate-in fade-in duration-300">
-            <MessageCircle
-              size={16}
-              className="shrink-0 mt-0.5 text-green-1/50"
-            />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-green-1/60 uppercase tracking-wide">
-                Clarificacoes
-              </p>
-              <ul className="space-y-1">
-                {result.clarifications.map((q, i) => (
-                  <li
-                    key={i}
-                    className="text-base font-normal text-green-1/70 leading-relaxed"
-                  >
-                    {q}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )*/}
-
-        {hasStructuredData && isStreamingComplete && onFeedback && (
+        {hasStructuredData && isStreamingComplete && !isTyping && onFeedback && (
           <div className="flex justify-start animate-in fade-in duration-300">
             {feedbackGiven ? (
               <p className="text-sm text-green-1/40">
@@ -242,7 +174,7 @@ function SearchResultLegacy({
   onComplete,
   animated = true,
 }: SearchResultLegacyProps) {
-  const { displayedText } = useTypewriter({
+  const { displayedText, isTyping } = useTypewriter({
     text: content,
     enabled: animated,
     onComplete,
@@ -259,7 +191,7 @@ function SearchResultLegacy({
           className={cn(
             "leading-relaxed font-normal text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
             animated &&
-              displayedText.length < content.length &&
+              isTyping &&
               "after:content-['█'] after:animate-cursor-blink after:ml-0.5 after:text-green-1 after:text-sm",
           )}
         >
@@ -267,28 +199,6 @@ function SearchResultLegacy({
         </p>
       </div>
     </div>
-  );
-}
-
-function AnimatedItem({
-  text,
-  showCursor,
-  enabled = true,
-}: {
-  text: string;
-  showCursor: boolean;
-  enabled?: boolean;
-}) {
-  const { displayedText } = useTypewriter({ text, enabled });
-  return (
-    <span>
-      {displayedText}
-      {showCursor && displayedText.length < text.length && (
-        <span className="animate-cursor-blink ml-0.5 text-green-1 text-sm">
-          █
-        </span>
-      )}
-    </span>
   );
 }
 

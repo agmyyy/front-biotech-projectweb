@@ -19,10 +19,6 @@ interface UseSearchReturn {
   ) => Promise<SearchResponse | null>;
   clearSearch: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
-  displayedSummary: string;
-  displayedSuggestions: string[];
-  displayedJustifications: string[];
-  displayedSources: string[];
   currentPhase: StreamingPhase;
 }
 
@@ -31,10 +27,6 @@ export function useSearch(): UseSearchReturn {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [displayedSummary, setDisplayedSummary] = useState("");
-  const [displayedSuggestions, setDisplayedSuggestions] = useState<string[]>([]);
-  const [displayedJustifications, setDisplayedJustifications] = useState<string[]>([]);
-  const [displayedSources, setDisplayedSources] = useState<string[]>([]);
   const [currentPhase, setCurrentPhase] = useState<StreamingPhase>("summary");
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,10 +61,6 @@ export function useSearch(): UseSearchReturn {
       setError(null);
       setQuery(cleanedText);
       setResult(null);
-      setDisplayedSummary("");
-      setDisplayedSuggestions([]);
-      setDisplayedJustifications([]);
-      setDisplayedSources([]);
       setCurrentPhase("summary");
 
       let accumulatedSummary = "";
@@ -85,9 +73,7 @@ export function useSearch(): UseSearchReturn {
         await searchService.searchStream(cleanedText, sessionId, {
           onChunk: (chunk) => {
             accumulatedSummary += chunk;
-            setDisplayedSummary(accumulatedSummary);
             setResult((prev) => ({
-              ...prev,
               summary: accumulatedSummary,
               suggestions: prev?.suggestions || [],
               justifications: prev?.justifications || [],
@@ -101,7 +87,13 @@ export function useSearch(): UseSearchReturn {
               currentItemIndex = 0;
             }
             accumulatedSuggestions[currentItemIndex] += chunk;
-            setDisplayedSuggestions([...accumulatedSuggestions]);
+            setResult((prev) => ({
+              summary: prev?.summary || accumulatedSummary,
+              suggestions: [...accumulatedSuggestions],
+              justifications: prev?.justifications || [],
+              sources: prev?.sources || [],
+              sessionId: prev?.sessionId || sessionId || "",
+            }));
           },
           onSuggestionDone: () => {
             setCurrentPhase("justifications");
@@ -113,7 +105,13 @@ export function useSearch(): UseSearchReturn {
               currentItemIndex = 0;
             }
             accumulatedJustifications[currentItemIndex] += chunk;
-            setDisplayedJustifications([...accumulatedJustifications]);
+            setResult((prev) => ({
+              summary: prev?.summary || accumulatedSummary,
+              suggestions: prev?.suggestions || accumulatedSuggestions,
+              justifications: [...accumulatedJustifications],
+              sources: prev?.sources || [],
+              sessionId: prev?.sessionId || sessionId || "",
+            }));
           },
           onJustificationDone: () => {
             setCurrentPhase("sources");
@@ -125,7 +123,13 @@ export function useSearch(): UseSearchReturn {
               currentItemIndex = 0;
             }
             accumulatedSources[currentItemIndex] += chunk;
-            setDisplayedSources([...accumulatedSources]);
+            setResult((prev) => ({
+              summary: prev?.summary || accumulatedSummary,
+              suggestions: prev?.suggestions || accumulatedSuggestions,
+              justifications: prev?.justifications || accumulatedJustifications,
+              sources: [...accumulatedSources],
+              sessionId: prev?.sessionId || sessionId || "",
+            }));
           },
           onSourceDone: () => {
             setCurrentPhase("done");
@@ -170,10 +174,6 @@ export function useSearch(): UseSearchReturn {
     setError(null);
     setLoading(false);
     finalResultRef.current = null;
-    setDisplayedSummary("");
-    setDisplayedSuggestions([]);
-    setDisplayedJustifications([]);
-    setDisplayedSources([]);
     setCurrentPhase("summary");
 
     if (inputRef.current) {
@@ -200,10 +200,6 @@ export function useSearch(): UseSearchReturn {
     executeSearch,
     clearSearch,
     inputRef,
-    displayedSummary,
-    displayedSuggestions,
-    displayedJustifications,
-    displayedSources,
     currentPhase,
   };
 }

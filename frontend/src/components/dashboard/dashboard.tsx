@@ -33,10 +33,6 @@ export function Dashboard() {
     executeSearch,
     clearSearch,
     inputRef,
-    displayedSummary,
-    displayedSuggestions,
-    displayedJustifications,
-    displayedSources,
     currentPhase,
   } = useSearch();
 
@@ -331,10 +327,6 @@ export function Dashboard() {
                 animated={true}
                 onComplete={completeGeneration}
                 onFeedback={handleFeedback}
-                displayedSummary={displayedSummary}
-                displayedSuggestions={displayedSuggestions}
-                displayedJustifications={displayedJustifications}
-                displayedSources={displayedSources}
                 currentPhase={currentPhase}
                 messageId={pendingAnswerId ?? undefined}
               />
