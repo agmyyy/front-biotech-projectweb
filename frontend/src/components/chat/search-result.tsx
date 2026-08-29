@@ -58,8 +58,8 @@ function SearchResultStructured({
   currentPhase: externalPhase,
   messageId,
 }: SearchResultStructuredProps) {
-  const [feedbackGiven, setFeedbackGiven] = useState(
-    () => (messageId ? isMessageRated(messageId) : false),
+  const [feedbackGiven, setFeedbackGiven] = useState(() =>
+    messageId ? isMessageRated(messageId) : false,
   );
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
 
@@ -106,14 +106,14 @@ function SearchResultStructured({
             "leading-relaxed font-normal text-green-1 whitespace-pre-wrap wrap-break-words pr-2",
             showCursor &&
               currentPhase === "summary" &&
-              "after:content-['█'] after:animate-cursor-blink after:ml-0.5 after:text-green-1 after:text-sm",
+              "after:content-[''] after:animate-cursor-blink after:ml-0.5 after:text-green-1 after:text-sm",
           )}
         >
           {displayedSummary}
         </p>
 
         {displayedSuggestions.length > 0 && currentPhase !== "summary" && (
-          <Section title="Sugestoes de Formulação">
+          <Section title="Sugestões de Formulação">
             <ul className="space-y-1.5">
               {displayedSuggestions.map((item, i) => (
                 <li
@@ -136,29 +136,30 @@ function SearchResultStructured({
           </Section>
         )}
 
-        {displayedJustifications.length > 0 && (currentPhase === "sources" || currentPhase === "done") && (
-          <Section title="Justificativas">
-            <ul className="space-y-1.5">
-              {displayedJustifications.map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
-                >
-                  <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1" />
-                  <AnimatedItem
-                    text={item}
-                    enabled={animated}
-                    showCursor={
-                      showCursor &&
-                      currentPhase === "sources" &&
-                      i === displayedJustifications.length - 1
-                    }
-                  />
-                </li>
-              ))}
-            </ul>
-          </Section>
-        )}
+        {displayedJustifications.length > 0 &&
+          (currentPhase === "sources" || currentPhase === "done") && (
+            <Section title="Justificativas">
+              <ul className="space-y-1.5">
+                {displayedJustifications.map((item, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-green-1 text-base font-normal leading-relaxed"
+                  >
+                    <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-green-1" />
+                    <AnimatedItem
+                      text={item}
+                      enabled={animated}
+                      showCursor={
+                        showCursor &&
+                        currentPhase === "sources" &&
+                        i === displayedJustifications.length - 1
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
 
         {displayedSources.length > 0 && currentPhase === "done" && (
           <Section title="Fontes">

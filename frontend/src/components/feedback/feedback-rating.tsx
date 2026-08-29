@@ -34,7 +34,7 @@ export function FeedbackRating({
       aria-label="Avaliação da pesquisa"
     >
       <h3
-        className={cn("text-md font-primary mb-2 text-center", "font-medium")}
+        className={cn("text-md font-primary mb-2 text-center", "font-normal")}
       >
         Avalie sua pesquisa:
       </h3>

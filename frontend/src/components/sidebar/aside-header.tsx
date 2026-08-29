@@ -26,7 +26,7 @@ export function AsideHeader({ isCollapsed, user }: AsideHeaderProps) {
         />
       </div>
       {!isCollapsed && (
-        <span className=" self-center whitespace-nowrap overflow-hidden text-lg font-medium">
+        <span className=" self-center whitespace-nowrap overflow-hidden text-lg font-normal">
           Olá, {firstName}!
         </span>
       )}

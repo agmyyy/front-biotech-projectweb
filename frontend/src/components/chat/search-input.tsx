@@ -30,11 +30,11 @@ export function SearchInput({ text, maxLength = 200 }: SearchInputProps) {
     <div className="flex justify-end">
       <div
         className={cn(
-          "flex items-start gap-3 bg-li px-5 py-3 max-w-140 rounded-3xl font-medium shadow-md text-lg overflow-hidden",
+          "flex items-start gap-3 bg-li px-5 py-3 max-w-140 rounded-3xl shadow-md text-lg overflow-hidden",
           "border border-li/50",
         )}
       >
-        <span className="whitespace-pre-wrap wrap-break-words flex-1 text-green-1 leading-relaxed">
+        <span className="whitespace-pre-wrap font-normal wrap-break-words flex-1 text-green-1 leading-relaxed">
           {displayText}
         </span>
 

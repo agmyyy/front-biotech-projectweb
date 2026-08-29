@@ -16,7 +16,7 @@ export function NewChat({ isCollapsed, onClick }: NewChatProps) {
       onClick={onClick}
       variant="ghost"
       className={cn(
-        "flex w-50 items-center justify-start p-2 gap-2 py-8 rounded-4xl cursor-pointer transition hover:opacity-65",
+        "flex w-50 items-center justify-start p-2 gap-2 pb-15 rounded-4xl cursor-pointer transition hover:opacity-65",
         isCollapsed && "h-10 w-9",
       )}
       aria-label="Iniciar novo chat"
