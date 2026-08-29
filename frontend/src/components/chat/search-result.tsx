@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeedbackRating } from "@/components/feedback/feedback-rating";
@@ -81,6 +81,7 @@ function SearchResultStructured({
     : result.justifications;
   const displayedSources = animated ? (externalSources ?? []) : result.sources;
   const currentPhase = externalPhase ?? "done";
+  const isStreamingComplete = animated ? currentPhase === "done" : true;
 
   const handleFeedback = (rating: number) => {
     setFeedbackGiven(true);
@@ -89,8 +90,6 @@ function SearchResultStructured({
   };
 
   if (isLoading) return null;
-
-  const isStreamingComplete = animated ? currentPhase === "done" : true;
 
   const hasStructuredData =
     result.suggestions.length > 0 ||

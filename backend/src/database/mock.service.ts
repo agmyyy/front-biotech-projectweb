@@ -72,12 +72,20 @@ export class MockService {
       avatarUrl: undefined,
       createdAt: new Date().toISOString(),
     },
+    {
+      id: "user-3",
+      name: "Lua",
+      email: "lua@gmail.com",
+      password: "senha321",
+      avatarUrl: undefined,
+      createdAt: new Date().toISOString(),
+    },
   ];
 
   private sessions: MockSession[] = [
     {
       id: "session-1",
-      title: "Sessão Inicial",
+      title: "Rosa mosqueta",
       userId: "user-1",
       messages: [],
       createdAt: new Date().toISOString(),
