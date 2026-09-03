@@ -1,6 +1,6 @@
 ## Sobre o Projeto
 
-A é uma plataforma web que combina uma interface de chat intuitiva com um sistema multi-agente simulado para responder perguntas sobre biotecnologia. Os usuários podem realizar perguntas e receber respostas estruturadas contendo resumo, sugestões, justificativas e fontes de referência tudo com uma animação de typewriter em tempo real.
+O projeto é uma plataforma web que combina uma interface de chat intuitiva com um sistema multi-agente simulado para responder perguntas sobre biotecnologia. Os usuários podem realizar perguntas e receber respostas estruturadas contendo resumo, sugestões, justificativas e fontes de referência tudo com uma animação de typewriter em tempo real.
 
 ---
 
