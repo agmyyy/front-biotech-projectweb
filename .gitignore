@@ -1,0 +1,20 @@
+# Dependências globais
+node_modules/
+dist/
+build/
+
+# Arquivos de ambiente e chaves (Nunca envie para o GitHub)
+.env
+.env.*
+!.env.example
+*.pem
+
+# Configurações de IDEs e logs
+.vscode/
+.idea/
+*.log
+.DS_Store
+
+# Arquivos específicos da raiz que você queira ignorar
+opencode.json
+AGENTS.md

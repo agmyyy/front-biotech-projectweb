@@ -1,0 +1,12 @@
+{
+  "name": "monorepo-biotech",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "shared",
+    "backend"
+  ],
+  "dependencies": {
+    "sonner": "^2.0.7"
+  }
+}

@@ -1,0 +1,10 @@
+# Pasta de build de produção do NestJS/Node
+dist/
+build/
+
+# Cobertura de testes unitários
+coverage/
+
+# Logs locais do servidor
+npm-debug.log*
+yarn-debug.log*
