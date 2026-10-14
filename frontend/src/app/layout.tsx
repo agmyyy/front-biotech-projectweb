@@ -52,7 +52,18 @@ export default function RootLayout({
     >
       <body className="h-full antialiased">
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "var(--color-aside)",
+              color: "var(--color-green-1)",
+              border: "1px solid var(--color-li)",
+              borderRadius: "16px",
+              fontFamily: "var(--font-primary)",
+            },
+          }}
+        />
       </body>
     </html>
   );

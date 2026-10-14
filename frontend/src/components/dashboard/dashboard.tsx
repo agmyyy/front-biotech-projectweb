@@ -219,11 +219,25 @@ export function Dashboard() {
   }, [loadSession, clearSearch, setActiveSession]);
 
   const handleDeleteSession = useCallback(
-    (sessionId: string, e: React.MouseEvent) => {
+    async (sessionId: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      deleteSession(sessionId);
+      const wasActive = activeSession?.id === sessionId;
+      const ok = await deleteSession(sessionId);
+      if (ok && wasActive) {
+        clearSearch();
+        resetFeedback();
+        completeGeneration();
+        syncUrl(undefined);
+      }
     },
-    [deleteSession],
+    [
+      deleteSession,
+      activeSession,
+      clearSearch,
+      resetFeedback,
+      completeGeneration,
+      syncUrl,
+    ],
   );
 
   const handleFeedback = useCallback(

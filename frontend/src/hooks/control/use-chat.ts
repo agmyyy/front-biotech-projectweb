@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { chatService } from "@/services/chat-service";
 import type { ChatMessage, ChatSession, FeedbackRating } from "@/types";
 
@@ -18,7 +19,7 @@ interface UseChatReturn {
     messageId: string,
     rating: number,
   ) => Promise<void>;
-  deleteSession: (sessionId: string) => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<boolean>;
   sendFeedback: (feedback: FeedbackRating) => Promise<void>;
   setActiveSession: (session: ChatSession | null) => void;
 }
@@ -150,24 +151,38 @@ export function useChat(): UseChatReturn {
     [],
   );
 
-  //ainda não foi implementado a exclusão de chats
   const deleteSession = useCallback(
     async (sessionId: string) => {
       setLoading(true);
       setError(null);
+      const target =
+        sessions.find((s) => s.id === sessionId) ??
+        (activeSession?.id === sessionId ? activeSession : null);
       try {
         await chatService.deleteSession(sessionId);
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
         if (activeSession?.id === sessionId) {
           setActiveSession(null);
         }
+        toast.success("Chat excluído", {
+          description: target?.title
+            ? `"${target.title}" foi removido do histórico.`
+            : "A conversa foi removida do histórico.",
+        });
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao excluir sessão");
+        const message =
+          err instanceof Error ? err.message : "Erro ao excluir sessão";
+        setError(message);
+        toast.error("Não foi possível excluir", {
+          description: message,
+        });
+        return false;
       } finally {
         setLoading(false);
       }
     },
-    [activeSession],
+    [activeSession, sessions],
   );
 
   const sendFeedback = useCallback(async (feedback: FeedbackRating) => {

@@ -9,7 +9,7 @@ Trata-se uma plataforma web que combina uma interface de chat intuitiva com um s
 - **Autenticação JWT** — Cadastro e login com tokens baseados em cookie
 - **Chat Inteligente** — Interface de busca com respostas estruturadas (resumo, sugestões, justificativas, fontes)
 - **Streaming com Typewriter** — Exibição progressiva da resposta com animação palavra por palavra
-- **Gerenciamento de Sessões** — Criação, listagem e exclusão de sessões de conversa
+- **Gerenciamento de Sessões** — Criação, listagem e exclusão de sessões de conversa (botão “X” no hover com confirmação inline)
 - **Feedback com Estrelas** — Sistema de avaliação de respostas (1 a 5 estrelas)
 - **Sidebar Colapsável** — Navegação lateral com histórico de conversas
 - **Rotas Protegidas** — Middleware de autenticação no client-side
@@ -166,7 +166,9 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 | `POST`   | `/api/sessions`              |     Sim     | Criar nova sessão            |
 | `PATCH`  | `/api/sessions/:id`          |     Sim     | Atualizar título da sessão   |
 | `POST`   | `/api/sessions/:id/messages` |     Sim     | Adicionar mensagens à sessão |
-| `DELETE` | `/api/sessions/:id`          |     Sim     | Excluir sessão               |
+| `DELETE` | `/api/sessions/:id`          |     Sim     | Excluir sessão do usuário (remove queries vinculadas; 404 se não for o dono) |
+
+> **Excluir chat:** passe o mouse sobre a conversa na sidebar para revelar o botão “X” (`ChatList`). O primeiro clique pede confirmação inline (confirmar/cancelar, com auto-cancelamento em 5s); ao confirmar, o frontend chama `DELETE /api/sessions/:id` e exibe um toast de sucesso (“Chat excluído”) ou erro (“Não foi possível excluir”) no padrão visual da app (fundo `aside`, texto `green-1`, pills). Se era a sessão ativa e a exclusão teve sucesso, limpa a conversa e a URL (`/dashboard`).
 
 ### Feedback
 

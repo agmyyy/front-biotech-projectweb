@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  BadRequestException,
   NotFoundException,
   UseGuards,
   Req,
@@ -67,8 +68,12 @@ export class SessionsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    const deleted = this.mockService.deleteSession(id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    if (!id || !id.trim()) {
+      throw new BadRequestException('ID da sessão é obrigatório');
+    }
+    const user = req.user as { id: string };
+    const deleted = this.mockService.deleteSession(id, user.id);
     if (!deleted) {
       throw new NotFoundException('Sessão não encontrada');
     }

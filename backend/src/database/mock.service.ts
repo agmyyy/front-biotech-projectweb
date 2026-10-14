@@ -164,10 +164,13 @@ export class MockService {
     return this.sessions[idx];
   }
 
-  deleteSession(id: string) {
-    const idx = this.sessions.findIndex((s) => s.id === id);
+  deleteSession(id: string, userId?: string) {
+    const idx = this.sessions.findIndex(
+      (s) => s.id === id && (!userId || s.userId === userId),
+    );
     if (idx === -1) return false;
     this.sessions.splice(idx, 1);
+    this.queries = this.queries.filter((q) => q.sessionId !== id);
     return true;
   }
 
