@@ -168,7 +168,7 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 | `POST`   | `/api/sessions/:id/messages` |     Sim     | Adicionar mensagens à sessão |
 | `DELETE` | `/api/sessions/:id`          |     Sim     | Excluir sessão do usuário (remove queries vinculadas; 404 se não for o dono) |
 
-> **Excluir chat:** passe o mouse sobre a conversa na sidebar para revelar o botão “X” (`ChatList`). Clicar abre um toast de pergunta (`Excluir "título"?`, com botões **Excluir**/**Manter**) que fica na tela até você decidir; **Manter** dispensa o toast sem excluir. Ao confirmar, o mesmo toast vira "Excluindo…" e depois o resultado (`Chat excluído` ou `Não foi possível excluir`), no padrão visual da app (fundo `aside`, texto `green-1`). Se era a sessão ativa e a exclusão teve sucesso, limpa a conversa e a URL (`/dashboard`).
+> **Excluir chat:** passe o mouse sobre a conversa na sidebar para revelar o botão “X” (`ChatList`). Clicar abre um toast de pergunta (`Excluir "título"?`, com botões **Excluir**/**Manter**) que fica na tela até você decidir; **Manter** dispensa o toast sem excluir. Ao confirmar, o mesmo toast vira "Excluindo…" e depois o resultado (`Chat excluído` ou `Não foi possível excluir`), visível por no mínimo 3s, no padrão visual da app (fundo `aside`, texto `green-1`). Se era a sessão ativa e a exclusão teve sucesso, limpa a conversa e a URL (`/dashboard`).
 
 ### Feedback
 

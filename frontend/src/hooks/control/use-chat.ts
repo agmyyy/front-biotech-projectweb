@@ -33,7 +33,8 @@ export function useChat(): UseChatReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSessions = useCallback(async () => {
+  // Tempo mínimo (ms) que o toast de confirmação de exclusão fica visível.
+  const DELETE_TOAST_DURATION = 3000;  const loadSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -169,6 +170,7 @@ export function useChat(): UseChatReturn {
         }
         toast.success("Chat excluído", {
           id: toastId,
+          duration: DELETE_TOAST_DURATION,
           description: target?.title
             ? `"${target.title}" foi removido do histórico.`
             : "A conversa foi removida do histórico.",
@@ -180,6 +182,7 @@ export function useChat(): UseChatReturn {
         setError(message);
         toast.error("Não foi possível excluir", {
           id: toastId,
+          duration: DELETE_TOAST_DURATION,
           description: message,
         });
         return false;
