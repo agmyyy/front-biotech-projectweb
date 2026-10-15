@@ -23,6 +23,7 @@ interface UseChatReturn {
     sessionId: string,
     toastId?: string | number,
   ) => Promise<boolean>;
+  renameSession: (sessionId: string, title: string) => Promise<boolean>;
   sendFeedback: (feedback: FeedbackRating) => Promise<void>;
   setActiveSession: (session: ChatSession | null) => void;
 }
@@ -193,6 +194,39 @@ export function useChat(): UseChatReturn {
     [activeSession, sessions],
   );
 
+  const renameSession = useCallback(async (sessionId: string, title: string) => {
+    const trimmed = title.trim();
+    if (trimmed.length === 0) {
+      toast.error("Título inválido", {
+        description: "O título do chat não pode ficar vazio.",
+      });
+      return false;
+    }
+    setError(null);
+    try {
+      const updated = await chatService.updateSession(sessionId, {
+        title: trimmed,
+      });
+      if (!updated) return false;
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? { ...s, title: updated.title } : s)),
+      );
+      setActiveSession((prev) =>
+        prev?.id === sessionId ? { ...prev, title: updated.title } : prev,
+      );
+      toast.success("Chat renomeado", {
+        description: `Título atualizado para "${updated.title}".`,
+      });
+      return true;
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Erro ao renomear sessão";
+      setError(message);
+      toast.error("Não foi possível renomear", { description: message });
+      return false;
+    }
+  }, []);
+
   const sendFeedback = useCallback(async (feedback: FeedbackRating) => {
     try {
       await chatService.sendFeedback(feedback);
@@ -216,6 +250,7 @@ export function useChat(): UseChatReturn {
     appendMessages,
     updateMessageRating,
     deleteSession,
+    renameSession,
     sendFeedback,
     setActiveSession,
   };

@@ -54,6 +54,7 @@ export function Dashboard() {
     appendMessages,
     updateMessageRating,
     deleteSession,
+    renameSession,
     loadSession,
     setActiveSession,
   } = useChat();
@@ -289,6 +290,13 @@ export function Dashboard() {
     [sessions, handleConfirmDelete],
   );
 
+  const handleRequestRename = useCallback(
+    async (sessionId: string, title: string) => {
+      return renameSession(sessionId, title);
+    },
+    [renameSession],
+  );
+
   const handleFeedback = useCallback(
     (rating: number) => {
       sendFeedback(rating);
@@ -347,6 +355,7 @@ export function Dashboard() {
           activeSessionId={activeSession?.id}
           onSelect={handleSelectSession}
           onRequestDelete={handleRequestDelete}
+          onRequestRename={handleRequestRename}
         />
         <Logout isCollapsed={isCollapsed} />
       </Sidebar>
