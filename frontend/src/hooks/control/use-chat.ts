@@ -19,7 +19,10 @@ interface UseChatReturn {
     messageId: string,
     rating: number,
   ) => Promise<void>;
-  deleteSession: (sessionId: string) => Promise<boolean>;
+  deleteSession: (
+    sessionId: string,
+    toastId?: string | number,
+  ) => Promise<boolean>;
   sendFeedback: (feedback: FeedbackRating) => Promise<void>;
   setActiveSession: (session: ChatSession | null) => void;
 }
@@ -152,7 +155,7 @@ export function useChat(): UseChatReturn {
   );
 
   const deleteSession = useCallback(
-    async (sessionId: string) => {
+    async (sessionId: string, toastId?: string | number) => {
       setLoading(true);
       setError(null);
       const target =
@@ -165,6 +168,7 @@ export function useChat(): UseChatReturn {
           setActiveSession(null);
         }
         toast.success("Chat excluído", {
+          id: toastId,
           description: target?.title
             ? `"${target.title}" foi removido do histórico.`
             : "A conversa foi removida do histórico.",
@@ -175,6 +179,7 @@ export function useChat(): UseChatReturn {
           err instanceof Error ? err.message : "Erro ao excluir sessão";
         setError(message);
         toast.error("Não foi possível excluir", {
+          id: toastId,
           description: message,
         });
         return false;

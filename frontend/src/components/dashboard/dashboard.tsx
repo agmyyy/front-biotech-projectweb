@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Sidebar,
   AsideHeader,
@@ -61,6 +62,7 @@ export function Dashboard() {
 
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const confirmToastId = useRef<string | number | null>(null);
   const { containerRef, autoScrollEnabled, scrollToBottom } = useAutoScroll();
 
   const { sendFeedback, resetFeedback } = useFeedbackApi({
@@ -218,11 +220,15 @@ export function Dashboard() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [loadSession, clearSearch, setActiveSession]);
 
-  const handleDeleteSession = useCallback(
-    async (sessionId: string, e: React.MouseEvent) => {
-      e.stopPropagation();
+  const handleConfirmDelete = useCallback(
+    async (sessionId: string) => {
+      const toastId = confirmToastId.current;
+      confirmToastId.current = null;
       const wasActive = activeSession?.id === sessionId;
-      const ok = await deleteSession(sessionId);
+      if (toastId) {
+        toast.loading("Excluindo chat…", { id: toastId });
+      }
+      const ok = await deleteSession(sessionId, toastId ?? undefined);
       if (ok && wasActive) {
         clearSearch();
         resetFeedback();
@@ -238,6 +244,49 @@ export function Dashboard() {
       completeGeneration,
       syncUrl,
     ],
+  );
+
+  const handleRequestDelete = useCallback(
+    (sessionId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const target = sessions.find((s) => s.id === sessionId);
+      if (!target) return;
+      if (confirmToastId.current) {
+        toast.dismiss(confirmToastId.current);
+      }
+      const id = `delete-chat-${sessionId}`;
+      confirmToastId.current = id;
+      toast(`Excluir "${target.title}"?`, {
+        id,
+        description: "Essa ação não pode ser desfeita.",
+        duration: Infinity,
+        action: {
+          label: "Excluir",
+          onClick: () => handleConfirmDelete(sessionId),
+        },
+        cancel: {
+          label: "Manter",
+          onClick: () => {
+            toast.dismiss(id);
+          },
+        },
+        actionButtonStyle: {
+          background: "var(--color-button)",
+          color: "#fff",
+          borderRadius: "9999px",
+        },
+        cancelButtonStyle: {
+          background: "transparent",
+          color: "var(--color-green-1)",
+          border: "1px solid var(--color-li)",
+          borderRadius: "9999px",
+        },
+        onDismiss: () => {
+          if (confirmToastId.current === id) confirmToastId.current = null;
+        },
+      });
+    },
+    [sessions, handleConfirmDelete],
   );
 
   const handleFeedback = useCallback(
@@ -297,7 +346,7 @@ export function Dashboard() {
           sessions={sessions}
           activeSessionId={activeSession?.id}
           onSelect={handleSelectSession}
-          onDelete={handleDeleteSession}
+          onRequestDelete={handleRequestDelete}
         />
         <Logout isCollapsed={isCollapsed} />
       </Sidebar>
