@@ -133,8 +133,11 @@ export function ChatList({
                     <DropdownMenu.Content
                       side="bottom"
                       align="end"
-                      sideOffset={4}
+                      sideOffset={2}
+                      alignOffset={0}
                       avoidCollisions
+                      sticky="partial"
+                      collisionPadding={8}
                       onClick={(e) => e.stopPropagation()}
                       className="w-60 rounded-2xl border border-li bg-main p-2 shadow-xl z-[100]"
                     >
