@@ -5,34 +5,41 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/services/auth-service";
 import { toast } from "sonner";
+import { getFriendlyMessage } from "@/lib/error-messages";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errorEmail, setErrorEmail] = useState("");
+  const [errorSenha, setErrorSenha] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setErrorEmail("");
+    setErrorSenha("");
 
     try {
       const response = await authService.login({ email, password });
       if (response.user) {
         localStorage.setItem("biotech_user", JSON.stringify(response.user));
       }
-      // toast.success("Login realizado com sucesso!");
+      toast.success("Login realizado com sucesso!");
       const redirect = searchParams.get("redirect") || "/dashboard";
       router.push(redirect);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erro ao fazer login";
-      setError(message);
-      toast.error(message);
+      const { email: msgEmail, senha: msgSenha, geral } =
+        getFriendlyMessage("login", err);
+      if (msgEmail) setErrorEmail(msgEmail);
+      if (msgSenha) setErrorSenha(msgSenha);
+      if (geral) {
+        setErrorEmail(geral);
+        setErrorSenha(geral);
+      }
     } finally {
       setLoading(false);
     }
@@ -108,7 +115,8 @@ function LoginForm() {
           </div>
 
           <p className="forgot-password">Esqueceu a senha?</p>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {errorEmail && <p className="text-red-500 text-sm">{errorEmail}</p>}
+          {errorSenha && <p className="text-red-500 text-sm">{errorSenha}</p>}
           <button className="btn-primary" type="submit" disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}
           </button>

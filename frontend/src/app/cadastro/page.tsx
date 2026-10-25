@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth-service";
 import { toast } from "sonner";
+import { getFriendlyMessage } from "@/lib/error-messages";
 
 export default function Cadastro() {
   const [nome, setNome] = useState("");
@@ -12,13 +13,17 @@ export default function Cadastro() {
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errorNome, setErrorNome] = useState("");
+  const [errorEmail, setErrorEmail] = useState("");
+  const [errorSenha, setErrorSenha] = useState("");
   const router = useRouter();
 
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
+    setErrorNome("");
+    setErrorEmail("");
+    setErrorSenha("");
 
     try {
       const response = await authService.register({ name: nome, email, password });
@@ -28,9 +33,16 @@ export default function Cadastro() {
       toast.success("Conta criada com sucesso!");
       router.push("/dashboard");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao criar conta";
-      setError(message);
-      toast.error(message);
+      const { nome: msgNome, email: msgEmail, senha: msgSenha, geral } =
+        getFriendlyMessage("cadastro", err);
+      if (msgNome) setErrorNome(msgNome);
+      if (msgEmail) setErrorEmail(msgEmail);
+      if (msgSenha) setErrorSenha(msgSenha);
+      if (geral) {
+        setErrorNome(geral);
+        setErrorEmail(geral);
+        setErrorSenha(geral);
+      }
     } finally {
       setLoading(false);
     }
@@ -108,10 +120,12 @@ export default function Cadastro() {
             </div>
           </div>
 
+          {errorNome && <p className="text-red-500 text-sm">{errorNome}</p>}
+          {errorEmail && <p className="text-red-500 text-sm">{errorEmail}</p>}
+          {errorSenha && <p className="text-red-500 text-sm">{errorSenha}</p>}
           <button className="btn-primary" type="submit" disabled={loading}>
             {loading ? "Criando conta..." : "Continuar"}
           </button>
-          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </form>
 
         <p className="register-link">

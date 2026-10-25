@@ -9,7 +9,7 @@ Trata-se uma plataforma web que combina uma interface de chat intuitiva com um s
 - **Autenticação JWT** — Cadastro e login com tokens baseados em cookie
 - **Chat Inteligente** — Interface de busca com respostas estruturadas (resumo, sugestões, justificativas, fontes)
 - **Streaming com Typewriter** — Exibição progressiva da resposta com animação palavra por palavra
-- **Gerenciamento de Sessões** — Criação, listagem e exclusão de sessões de conversa (botão “X” no hover com confirmação inline)
+- **Gerenciamento de Sessões** — Criação, listagem, renomeação e exclusão de sessões de conversa via menu “⋮” no hover de cada chat (Radix DropdownMenu com **Renomear** e **Excluir**; exclusão com confirmação em toast)
 - **Feedback com Estrelas** — Sistema de avaliação de respostas (1 a 5 estrelas)
 - **Sidebar Colapsável** — Navegação lateral com histórico de conversas
 - **Rotas Protegidas** — Middleware de autenticação no client-side
@@ -168,7 +168,11 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 | `POST`   | `/api/sessions/:id/messages` |     Sim     | Adicionar mensagens à sessão |
 | `DELETE` | `/api/sessions/:id`          |     Sim     | Excluir sessão do usuário (remove queries vinculadas; 404 se não for o dono) |
 
-> **Excluir chat:** passe o mouse sobre a conversa na sidebar para revelar o botão “X” (`ChatList`). Clicar abre um toast de pergunta (`Excluir "título"?`, com botões **Excluir**/**Manter**) que fica na tela até você decidir; **Manter** dispensa o toast sem excluir. Ao confirmar, o mesmo toast vira "Excluindo…" e depois o resultado (`Chat excluído` ou `Não foi possível excluir`), visível por no mínimo 3s, no padrão visual da app (fundo `aside`, texto `green-1`). Se era a sessão ativa e a exclusão teve sucesso, limpa a conversa e a URL (`/dashboard`).
+> **Menu do chat (⋮):** passe o mouse sobre a conversa na sidebar para revelar o botão de três pontinhos (`ChatList`, Radix `DropdownMenu` com `modal={false}`). O quadro abre no canto inferior direito do botão (`side="bottom"`, `align="end"`, com inversão automática quando falta espaço) e contém **Renomear** (`Pencil`) e **Excluir** (`Trash2`), no padrão visual da app (fundo `main`, borda `li`, hover `li`).
+>
+> **Renomear chat:** abre edição inline do título no próprio item (`Enter` salva, `Esc`/blur cancela, máx. 60 caracteres, vazio ou igual cancela sem chamar a API). Salva via `PATCH /api/sessions/:id` (`renameSession` em `use-chat`), com toasts de sucesso/erro.
+>
+> **Excluir chat:** abre um toast de pergunta (`Excluir "título"?`, com botões **Excluir**/**Manter**) que fica na tela até você decidir; **Manter** dispensa o toast sem excluir. Ao confirmar, o mesmo toast vira "Excluindo…" e depois o resultado (`Chat excluído` ou `Não foi possível excluir`), visível por no mínimo 3s, no padrão visual da app (fundo `aside`, texto `green-1`). Se era a sessão ativa e a exclusão teve sucesso, limpa a conversa e a URL (`/dashboard`).
 
 ### Feedback
 
