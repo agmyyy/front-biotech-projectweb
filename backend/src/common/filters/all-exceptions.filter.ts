@@ -10,7 +10,7 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     if (exception instanceof ZodError) {
-      const messages = exception.errors.map((e) => `${e.path.join('.')}: ${e.message}`);
+      const messages = exception.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
       response.status(400).json({
         error: 'Dados inválidos',
         details: messages,

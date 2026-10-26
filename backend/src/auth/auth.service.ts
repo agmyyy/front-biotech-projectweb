@@ -1,6 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { MockService } from '../database/mock.service';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { MockService } from "../database/mock.service";
 
 export type RegisterInput = {
   name: string;
@@ -23,7 +27,7 @@ export class AuthService {
   async register(data: RegisterInput) {
     const existing = this.mockService.findUserByEmail(data.email);
     if (existing) {
-      throw new ConflictException('E-mail já está em uso');
+      throw new ConflictException("E-mail já está em uso");
     }
 
     const user = this.mockService.createUser({
@@ -48,11 +52,11 @@ export class AuthService {
   async login(data: LoginInput) {
     const user = this.mockService.findUserByEmail(data.email);
     if (!user) {
-      throw new UnauthorizedException('E-mail ou senha incorretos');
+      throw new UnauthorizedException("E-mail incorretos");
     }
 
     if (user.password !== data.password) {
-      throw new UnauthorizedException('E-mail ou senha incorretos');
+      throw new UnauthorizedException("Senha incorretos");
     }
 
     const token = this.generateToken(user);
@@ -71,7 +75,7 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = this.mockService.findUserById(userId);
     if (!user) {
-      throw new UnauthorizedException('Usuário não encontrado');
+      throw new UnauthorizedException("Usuário não encontrado");
     }
 
     return {
