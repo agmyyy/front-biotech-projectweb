@@ -62,6 +62,10 @@ export const authService = {
 
   logout() {
     apiClient.setToken(null);
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("biotech_user");
+    }
   },
 
   setToken(token: string) {

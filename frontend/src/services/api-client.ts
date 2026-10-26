@@ -30,7 +30,7 @@ class ApiClient {
         document.cookie = `${TOKEN_KEY}=${token}; path=/; max-age=86400; SameSite=Lax`;
       } else {
         localStorage.removeItem(TOKEN_KEY);
-        document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+        document.cookie = `${TOKEN_KEY}=; path=/; max-age=0; SameSite=Lax`;
       }
     } catch {
       // localStorage indisponível
