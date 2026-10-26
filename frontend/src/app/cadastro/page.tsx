@@ -21,14 +21,19 @@ export default function Cadastro() {
     setError("");
 
     try {
-      const response = await authService.register({ name: nome, email, password });
+      const response = await authService.register({
+        name: nome,
+        email,
+        password,
+      });
       if (response.user) {
         localStorage.setItem("biotech_user", JSON.stringify(response.user));
       }
       toast.success("Conta criada com sucesso!");
       router.push("/dashboard");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao criar conta";
+      const message =
+        err instanceof Error ? err.message : "Erro ao criar conta";
       setError(message);
       toast.error(message);
     } finally {
@@ -47,15 +52,24 @@ export default function Cadastro() {
       {/* Lado Direito */}
       <div className="right-side">
         <div className="logo-container">
-          <Image src="/logo.png" alt="Logo 4WBiotech" width={168} height={63.85} />
+          <Image
+            src="/logo.png"
+            alt="Logo 4WBiotech"
+            width={168}
+            height={63.85}
+          />
         </div>
 
         <form className="login-form" onSubmit={handleCadastro}>
-
           {/* Grupo: Nome Completo */}
           <div className="field-group">
             <label className="input-label">
-              <Image src="/icone-usuario.svg" alt="Usuário" width={16} height={16} />
+              <Image
+                src="/icone-usuario.svg"
+                alt="Usuário"
+                width={16}
+                height={16}
+              />
               Nome Completo
             </label>
             <div className="input-wrapper">
@@ -71,7 +85,12 @@ export default function Cadastro() {
           {/* Grupo: E-mail */}
           <div className="field-group">
             <label className="input-label">
-              <Image src="/icone-email.svg" alt="Email" width={16} height={16} />
+              <Image
+                src="/icone-email.svg"
+                alt="Email"
+                width={16}
+                height={16}
+              />
               E-mail
             </label>
             <div className="input-wrapper">
@@ -87,7 +106,12 @@ export default function Cadastro() {
           {/* Grupo: Senha */}
           <div className="field-group">
             <label className="input-label">
-              <Image src="/icone-senha.svg" alt="Senha" width={16} height={16} />
+              <Image
+                src="/icone-senha.svg"
+                alt="Senha"
+                width={16}
+                height={16}
+              />
               Senha
             </label>
             <div className="input-wrapper">
@@ -115,7 +139,10 @@ export default function Cadastro() {
         </form>
 
         <p className="register-link">
-          <Link href="/login" style={{ color: "#2C4235", textDecoration: "none" }}>
+          <Link
+            href="/login"
+            style={{ color: "#2C4235", textDecoration: "none" }}
+          >
             Já tem uma conta? Entrar
           </Link>
         </p>

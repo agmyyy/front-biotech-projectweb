@@ -342,7 +342,12 @@ export function Dashboard() {
     if (autoScrollEnabled) {
       scrollToBottom();
     }
-  }, [persistedMessages.length, liveMessage, autoScrollEnabled, scrollToBottom]);
+  }, [
+    persistedMessages.length,
+    liveMessage,
+    autoScrollEnabled,
+    scrollToBottom,
+  ]);
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
@@ -392,6 +397,12 @@ export function Dashboard() {
                     animated={false}
                     messageId={msg.id}
                     onFeedback={msg.rating ? undefined : handleFeedback}
+                  />
+                ) : msg.suggestions ? (
+                  <SearchResult
+                    key={msg.id || index}
+                    content={msg.content}
+                    animated={false}
                   />
                 ) : (
                   <SearchResult
