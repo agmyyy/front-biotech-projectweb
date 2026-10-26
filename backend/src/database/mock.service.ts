@@ -60,7 +60,7 @@ export class MockService {
       id: "user-1",
       name: "Maria",
       email: "agmy@biotech.com",
-      password: "senha123",
+      password: "Senha123@",
       avatarUrl: undefined,
       createdAt: new Date().toISOString(),
     },
