@@ -3,19 +3,59 @@
 
 datasource db {
   provider = "postgresql"
-  //url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
-model User { 
-  id       String    @id @default(uuid()) 
-  email    String    @unique
-  name     String
-  password String 
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  sessions  Session[] // um user ter vários chats 1:n
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("users")
 }
 
+model Session {
+  id        String    @id @default(uuid())
+  title     String    // Guarda o primeiro input é o título da sessão
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[] // Vários inputs/mensagens dentro desta sessão
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("sessions")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String   // O texto enviado (user) ou gerado (assistant)
+  role      String   // "user" ou "assistant"
+  
+  sessionId String
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Relação 1: 1 opcional com a avaliação (apenas mensagens do assistente terão isto)
+  rating    Rating?  
+
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  score     Int      // Valor de 1 a 5 estrelas
+  
+  messageId String   @unique
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("ratings")
+}
