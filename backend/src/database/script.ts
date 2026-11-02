@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+/*import { Module, Global } from '@nestjs/common';
 import { MockService } from './mock.service';
 
 @Global()
@@ -7,3 +7,6 @@ import { MockService } from './mock.service';
   exports: [MockService],
 })
 export class DatabaseModule {}
+*/
+
+//import { prisma } from "./lib/prisma";

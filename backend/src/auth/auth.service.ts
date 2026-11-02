@@ -3,8 +3,8 @@ import {
   UnauthorizedException,
   ConflictException,
 } from "@nestjs/common";
+import { prisma } from "../lib/prisma";
 import { JwtService } from "@nestjs/jwt";
-import { MockService } from "../database/mock.service";
 
 export type RegisterInput = {
   name: string;
@@ -19,21 +19,22 @@ export type LoginInput = {
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private mockService: MockService,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private jwtService: JwtService) {}
 
   async register(data: RegisterInput) {
-    const existing = this.mockService.findUserByEmail(data.email);
+    const existing = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
     if (existing) {
       throw new ConflictException("E-mail já está em uso");
     }
 
-    const user = this.mockService.createUser({
-      name: data.name,
-      email: data.email,
-      password: data.password,
+    const user = await prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      },
     });
 
     const token = this.generateToken(user);
@@ -43,14 +44,15 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        avatarUrl: user.avatarUrl,
       },
       token,
     };
   }
 
   async login(data: LoginInput) {
-    const user = this.mockService.findUserByEmail(data.email);
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
     if (!user) {
       throw new UnauthorizedException("E-mail incorretos");
     }
@@ -66,14 +68,15 @@ export class AuthService {
         id: user.id,
         name: user.name,
         email: user.email,
-        avatarUrl: user.avatarUrl,
       },
       token,
     };
   }
 
   async getProfile(userId: string) {
-    const user = this.mockService.findUserById(userId);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
     if (!user) {
       throw new UnauthorizedException("Usuário não encontrado");
     }
@@ -82,7 +85,6 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
-      avatarUrl: user.avatarUrl,
     };
   }
 
