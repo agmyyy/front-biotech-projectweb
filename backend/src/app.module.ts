@@ -5,12 +5,10 @@ import { QueriesModule } from "./queries/queries.module";
 import { MasModule } from "./mas/mas.module";
 import { FeedbackModule } from "./feedback/feedback.module";
 import { EventsModule } from "./events/events.module";
-//import { DatabaseModule } from './database/script';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    // DatabaseModule,
     AuthModule,
     QueriesModule,
     MasModule,

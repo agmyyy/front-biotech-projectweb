@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { FeedbackRating } from "@/components/feedback/feedback-rating";
-import { isMessageRated, markMessageAsRated } from "@/lib/feedback-storage";
 import { useTypewriter } from "@/hooks/use-typewriter";
 import type { SearchResponse } from "@/types";
 import type { StreamingPhase } from "@/hooks/control/use-search";
@@ -12,10 +11,10 @@ interface SearchResultStructuredProps {
   result: SearchResponse;
   isLoading?: boolean;
   onComplete?: () => void;
-  onFeedback?: (rating: number) => void;
+  onFeedback?: (rating: number) => Promise<boolean>;
   animated?: boolean;
   currentPhase?: StreamingPhase;
-  messageId?: string;
+  isRated?: boolean;
 }
 
 interface SearchResultLegacyProps {
@@ -47,11 +46,10 @@ function SearchResultStructured({
   onFeedback,
   animated = true,
   currentPhase: externalPhase,
-  messageId,
+  isRated = false,
 }: SearchResultStructuredProps) {
-  const [feedbackGiven, setFeedbackGiven] = useState(() =>
-    messageId ? isMessageRated(messageId) : false,
-  );
+  // A nota vem do backend (isRated); feedbackGiven cobre a nota enviada agora nesta tela
+  const [feedbackGiven, setFeedbackGiven] = useState(false);
   const [sourcesExpanded, setSourcesExpanded] = useState(false);
 
   const { displayedText: typewriterSummary, isTyping } = useTypewriter({
@@ -64,18 +62,13 @@ function SearchResultStructured({
   const currentPhase = externalPhase ?? "done";
   const isStreamingComplete = animated ? currentPhase === "done" : true;
 
-  const handleFeedback = (rating: number) => {
-    setFeedbackGiven(true);
-    if (messageId) markMessageAsRated(messageId);
-    onFeedback?.(rating);
+  // Só marca como avaliada depois que o backend confirma a gravação
+  const handleFeedback = async (rating: number) => {
+    const saved = await onFeedback?.(rating);
+    if (saved) setFeedbackGiven(true);
   };
 
   if (isLoading) return null;
-
-  const hasStructuredData =
-    result.suggestions.length > 0 ||
-    result.justifications.length > 0 ||
-    result.sources.length > 0;
 
   const showCursor = animated && (isTyping || !isStreamingComplete);
 
@@ -152,9 +145,9 @@ function SearchResultStructured({
           </Section>
         )}
 
-        {hasStructuredData && isStreamingComplete && !isTyping && onFeedback && (
+        {isStreamingComplete && !isTyping && onFeedback && (
           <div className="flex justify-start animate-in fade-in duration-300">
-            {feedbackGiven ? (
+            {feedbackGiven || isRated ? (
               <p className="text-sm text-green-1/40">
                 Agradecemos seu feedback!
               </p>

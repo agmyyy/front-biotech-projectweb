@@ -10,7 +10,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   createdAt?: string;
-  rating?: number;
+  rating?: { score: number } | null;
   suggestions?: string[];
   justifications?: string[];
   sources?: string[];

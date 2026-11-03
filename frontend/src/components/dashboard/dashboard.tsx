@@ -67,9 +67,7 @@ export function Dashboard() {
   const confirmToastId = useRef<string | number | null>(null);
   const { containerRef, autoScrollEnabled, scrollToBottom } = useAutoScroll();
 
-  const { sendFeedback, resetFeedback } = useFeedbackApi({
-    searchId: result?.searchId,
-  });
+  const { sendFeedback } = useFeedbackApi();
 
   /**
    * Cria um novo chat limpo na interface.
@@ -77,10 +75,9 @@ export function Dashboard() {
   const handleNewChat = useCallback(() => {
     clearSearch();
     resetGeneration();
-    resetFeedback();
     setActiveSession(null); // Reseta a sessão ativa para preparar para nova pergunta
     router.replace("/dashboard", { scroll: false });
-  }, [clearSearch, resetGeneration, resetFeedback, setActiveSession, router]);
+  }, [clearSearch, resetGeneration, setActiveSession, router]);
 
   /**
    * Sincroniza a URL com a sessão ativa (ex.: /dashboard?chat=abc-123).
@@ -104,7 +101,6 @@ export function Dashboard() {
       if (cleanedText.length < 2) return;
 
       resetGeneration();
-      resetFeedback();
       setResult(null);
 
       const dynamicTitle =
@@ -140,7 +136,6 @@ export function Dashboard() {
       refreshSession,
       setQuery,
       resetGeneration,
-      resetFeedback,
       setResult,
       syncUrl,
     ],
@@ -152,12 +147,11 @@ export function Dashboard() {
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
       clearSearch();
-      resetFeedback();
       completeGeneration();
       await loadSession(sessionId);
       syncUrl(sessionId);
     },
-    [loadSession, clearSearch, completeGeneration, resetFeedback, syncUrl],
+    [loadSession, clearSearch, completeGeneration, syncUrl],
   );
 
   /**
@@ -213,7 +207,6 @@ export function Dashboard() {
       const ok = await deleteSession(sessionId, toastId ?? undefined);
       if (ok && wasActive) {
         clearSearch();
-        resetFeedback();
         completeGeneration();
         syncUrl(undefined);
       }
@@ -222,7 +215,6 @@ export function Dashboard() {
       deleteSession,
       activeSession,
       clearSearch,
-      resetFeedback,
       completeGeneration,
       syncUrl,
     ],
@@ -278,11 +270,16 @@ export function Dashboard() {
     [renameSession],
   );
 
+  // Avalia a mensagem indicada; quando o backend já tem nota (409), recarrega a sessão para sincronizar
   const handleFeedback = useCallback(
-    (rating: number) => {
-      sendFeedback(rating);
+    async (messageId: string, rating: number) => {
+      const outcome = await sendFeedback(messageId, rating);
+      if (outcome === "already-rated" && activeSession) {
+        await refreshSession(activeSession.id);
+      }
+      return outcome !== "failed";
     },
-    [sendFeedback],
+    [sendFeedback, refreshSession, activeSession],
   );
 
   const sessionMessages = activeSession?.messages ?? [];
@@ -361,32 +358,19 @@ export function Dashboard() {
               persistedMessages.map((msg, index) =>
                 msg.role === "user" ? (
                   <SearchInput key={msg.id || index} text={msg.content} />
-                ) : msg.suggestions ? (
+                ) : (
                   <SearchResult
                     key={msg.id || index}
                     result={{
                       summary: msg.content,
-                      suggestions: msg.suggestions,
-                      justifications: msg.justifications ?? [],
-                      sources: msg.sources ?? [],
-                      clarifications: msg.clarifications,
+                      suggestions: [],
+                      justifications: [],
+                      sources: [],
                       sessionId: activeSession?.id ?? "",
                     }}
                     animated={false}
-                    messageId={msg.id}
-                    onFeedback={msg.rating ? undefined : handleFeedback}
-                  />
-                ) : msg.suggestions ? (
-                  <SearchResult
-                    key={msg.id || index}
-                    content={msg.content}
-                    animated={false}
-                  />
-                ) : (
-                  <SearchResult
-                    key={msg.id || index}
-                    content={msg.content}
-                    animated={false}
+                    isRated={msg.rating != null}
+                    onFeedback={(rating) => handleFeedback(msg.id, rating)}
                   />
                 ),
               )}
@@ -401,9 +385,10 @@ export function Dashboard() {
                 result={result!}
                 animated={true}
                 onComplete={completeGeneration}
-                onFeedback={handleFeedback}
+                onFeedback={(rating) =>
+                  handleFeedback(result?.searchId ?? "", rating)
+                }
                 currentPhase={currentPhase}
-                messageId={pendingAnswerId ?? undefined}
               />
             )}
 
