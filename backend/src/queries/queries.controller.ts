@@ -40,20 +40,19 @@ export class QueriesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.queriesService.findOne(id);
+  findOne(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { id: string };
+    return this.queriesService.findOne(user.id, id);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.queriesService.remove(id);
+  remove(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { id: string };
+    return this.queriesService.remove(user.id, id);
   }
 
   @Post(':id/clarify')
-  addClarification(
-    @Param('id') id: string,
-    @Body() body: { clarification: string },
-  ) {
-    return this.queriesService.addClarification(id, body.clarification);
+  addClarification() {
+    return this.queriesService.addClarification();
   }
 }

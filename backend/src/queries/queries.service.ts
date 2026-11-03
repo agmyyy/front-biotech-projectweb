@@ -1,120 +1,74 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { MockService } from '../database/mock.service';
+import { Injectable, NotImplementedException } from '@nestjs/common';
+import { AuthService } from '../auth/auth.service';
 import { MasService } from '../mas/mas.service';
 import { EventsGateway } from '../events/events.gateway';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class QueriesService {
   constructor(
-    private mockService: MockService,
+    private authService: AuthService,
     private masService: MasService,
     private eventsGateway: EventsGateway,
   ) {}
 
+  // Grava a pergunta e a resposta como mensagens da mesma sessão
   async create(data: { query: string; userId: string; sessionId?: string }) {
-    let sessionId = data.sessionId;
+    const sessionId = data.sessionId ?? (await this.authService.createSession(data.userId)).id;
 
-    if (!sessionId) {
-      const session = this.mockService.createSession({
-        title: data.query.slice(0, 50),
-        userId: data.userId,
-      });
-      sessionId = session.id;
-    }
-
-    const query = this.mockService.createQuery({
-      query: data.query,
-      sessionId,
-      userId: data.userId,
-    });
+    const userMessage = await this.authService.createMessage(data.userId, sessionId, data.query, 'user');
 
     const masResponse = await this.masService.processQuery({
       query: data.query,
-      queryId: query.id,
+      queryId: userMessage.id,
       sessionId,
     });
 
-    query.summary = masResponse.summary;
-    query.suggestions = masResponse.suggestions;
-    query.justifications = masResponse.justifications;
-    query.sources = masResponse.sources;
-    query.status = 'completed';
+    const assistantMessage = await this.authService.createMessage(
+      data.userId,
+      sessionId,
+      masResponse.summary,
+      'assistant',
+    );
 
-    this.eventsGateway.notifyQueryCompleted(query.id, {
-      summary: query.summary,
-      suggestions: query.suggestions,
-      justifications: query.justifications,
-      sources: query.sources,
+    // A sala do WebSocket usa o id da resposta do assistente, que também serve de searchId para o feedback
+    this.eventsGateway.notifyQueryCompleted(assistantMessage.id, {
+      summary: masResponse.summary,
+      suggestions: masResponse.suggestions,
+      justifications: masResponse.justifications,
+      sources: masResponse.sources,
     });
 
     return {
-      id: query.id,
-      query: query.query,
-      sessionId: query.sessionId,
-      summary: query.summary,
-      suggestions: query.suggestions,
-      justifications: query.justifications,
-      sources: query.sources,
-      clarifications: query.clarifications,
-      status: query.status,
-      createdAt: query.createdAt,
+      searchId: assistantMessage.id,
+      sessionId,
+      summary: masResponse.summary,
+      suggestions: masResponse.suggestions,
+      justifications: masResponse.justifications,
+      sources: masResponse.sources,
+      clarifications: masResponse.clarifications ?? [],
+      status: 'completed',
+      createdAt: assistantMessage.createdAt,
     };
   }
 
   findAll(userId: string, sessionId?: string) {
-    return this.mockService.findAllQueries(userId, sessionId).map((q) => ({
-      id: q.id,
-      query: q.query,
-      sessionId: q.sessionId,
-      summary: q.summary,
-      suggestions: q.suggestions,
-      justifications: q.justifications,
-      sources: q.sources,
-      clarifications: q.clarifications,
-      status: q.status,
-      createdAt: q.createdAt,
-    }));
+    if (!sessionId) {
+      return [];
+    }
+    return this.authService.findMessagesBySession(userId, sessionId);
   }
 
-  findOne(id: string) {
-    const query = this.mockService.findQueryById(id);
-    if (!query) {
-      throw new NotFoundException('Consulta não encontrada');
-    }
-    return {
-      id: query.id,
-      query: query.query,
-      sessionId: query.sessionId,
-      summary: query.summary,
-      suggestions: query.suggestions,
-      justifications: query.justifications,
-      sources: query.sources,
-      clarifications: query.clarifications,
-      status: query.status,
-      createdAt: query.createdAt,
-    };
+  findOne(userId: string, messageId: string) {
+    return this.authService.findOwnedMessage(userId, messageId);
   }
 
-  async remove(id: string) {
-    const deleted = this.mockService.deleteQuery(id);
-    if (!deleted) {
-      throw new NotFoundException('Consulta não encontrada');
-    }
+  async remove(userId: string, messageId: string) {
+    await this.authService.deleteMessage(userId, messageId);
     return { message: 'Consulta deletada com sucesso' };
   }
 
-  async addClarification(queryId: string, clarification: string) {
-    const query = this.mockService.addClarification(queryId, clarification);
-    if (!query) {
-      throw new NotFoundException('Consulta não encontrada');
-    }
-
-    this.eventsGateway.notifyClarification(queryId, clarification);
-
-    return {
-      id: query.id,
-      clarifications: query.clarifications,
-    };
+  // Não implementado: o schema ainda não guarda esclarecimentos
+  addClarification() {
+    throw new NotImplementedException('Esclarecimentos ainda não são armazenados');
   }
 }

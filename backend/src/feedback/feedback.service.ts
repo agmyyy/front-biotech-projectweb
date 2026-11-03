@@ -1,29 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { MockService } from '../database/mock.service';
+import { Injectable } from '@nestjs/common';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class FeedbackService {
-  constructor(private mockService: MockService) {}
+  constructor(private authService: AuthService) {}
 
+  // searchId é o id da mensagem do assistente avaliada
   create(data: { rating: number; searchId: string; userId: string }) {
-    const session = this.mockService.findSessionById(data.searchId);
-    if (!session) {
-      throw new NotFoundException('Sessão não encontrada');
-    }
-
-    const existing = this.mockService.findFeedbackBySearchId(data.searchId).find((f) => f.userId === data.userId);
-    if (existing) {
-      return existing;
-    }
-
-    return this.mockService.createFeedback({
-      rating: data.rating,
-      searchId: data.searchId,
-      userId: data.userId,
-    });
+    return this.authService.createRating(data.userId, data.rating, data.searchId);
   }
 
-  findBySearchId(searchId: string) {
-    return this.mockService.findFeedbackBySearchId(searchId);
+  findBySearchId(userId: string, searchId: string) {
+    return this.authService.findRatingByMessage(userId, searchId);
   }
 }

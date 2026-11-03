@@ -29,7 +29,8 @@ export class FeedbackController {
   }
 
   @Get(':searchId')
-  findBySearchId(@Param('searchId') searchId: string) {
-    return this.feedbackService.findBySearchId(searchId);
+  findBySearchId(@Req() req: Request, @Param('searchId') searchId: string) {
+    const user = req.user as { id: string };
+    return this.feedbackService.findBySearchId(user.id, searchId);
   }
 }

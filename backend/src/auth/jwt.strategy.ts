@@ -1,15 +1,16 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
-import { MockService } from "../database/mock.service";
+import { prisma } from "../lib/prisma";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    configService: ConfigService,
-    private mockService: MockService,
-  ) {
+  constructor(configService: ConfigService) {
     const secret = configService.get<string>("JWT_SECRET");
     if (!secret) {
       throw new Error("JWT_SECRET não está definido nas variáveis de ambiente");
@@ -21,12 +22,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
+  // Confere no banco se o usuário do token ainda existe, para barrar contas excluídas
   async validate(payload: { sub: string; email: string }) {
-    const user = this.mockService.findUserById(payload.sub);
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+    } catch {
+      throw new InternalServerErrorException("Erro ao validar usuário");
+    }
+
     if (!user) {
       throw new UnauthorizedException("Usuário não encontrado");
     }
 
-    return { id: user.id, email: user.email, name: user.name };
+    return user;
   }
 }

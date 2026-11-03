@@ -270,8 +270,61 @@ export class AuthService {
     }
   }
 
+  // Busca a sessão com as mensagens e suas avaliações, após checar a posse
+  async findSessionById(userId: string, sessionId: string) {
+    await this.findOwnedSession(userId, sessionId);
+
+    try {
+      return await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: {
+          messages: {
+            orderBy: { createdAt: "asc" },
+            include: { rating: true },
+          },
+        },
+      });
+    } catch (error) {
+      throw this.mapDatabaseError(error, "Erro ao buscar sessão");
+    }
+  }
+
+  async updateSessionTitle(userId: string, sessionId: string, title: string) {
+    await this.findOwnedSession(userId, sessionId);
+
+    try {
+      return await prisma.session.update({
+        where: { id: sessionId },
+        data: { title: this.buildTitle(title) },
+      });
+    } catch (error) {
+      throw this.mapDatabaseError(error, "Erro ao atualizar sessão");
+    }
+  }
+
+  // A exclusão em cascata do schema remove mensagens e avaliações junto com a sessão
+  async deleteSession(userId: string, sessionId: string) {
+    await this.findOwnedSession(userId, sessionId);
+
+    try {
+      await prisma.session.delete({ where: { id: sessionId } });
+    } catch (error) {
+      throw this.mapDatabaseError(error, "Erro ao excluir sessão");
+    }
+  }
+
+  async deleteMessage(userId: string, messageId: string) {
+    await this.findOwnedMessage(userId, messageId);
+
+    try {
+      await prisma.message.delete({ where: { id: messageId } });
+    } catch (error) {
+      throw this.mapDatabaseError(error, "Erro ao excluir mensagem");
+    }
+  }
+
   // Verifica se a sessão existe e pertence ao usuário; senão responde 404 para não revelar sessões alheias
-  private async findOwnedSession(userId: string, sessionId: string) {
+  async findOwnedSession(userId: string, sessionId: string) {
     let session;
     try {
       session = await prisma.session.findFirst({
@@ -290,12 +343,18 @@ export class AuthService {
   }
 
   // Verifica se a mensagem pertence a uma sessão do usuário
-  private async findOwnedMessage(userId: string, messageId: string) {
+  async findOwnedMessage(userId: string, messageId: string) {
     let message;
     try {
       message = await prisma.message.findFirst({
         where: { id: messageId, session: { userId } },
-        select: { id: true, role: true },
+        select: {
+          id: true,
+          role: true,
+          content: true,
+          sessionId: true,
+          createdAt: true,
+        },
       });
     } catch (error) {
       throw this.mapDatabaseError(error, "Erro ao buscar mensagem");

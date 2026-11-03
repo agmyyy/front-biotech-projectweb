@@ -7,11 +7,11 @@ import {
   Body,
   Param,
   BadRequestException,
-  NotFoundException,
+  NotImplementedException,
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { MockService } from '../database/mock.service';
+import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { CreateSessionSchema } from 'shared';
@@ -20,63 +20,46 @@ import { Request } from 'express';
 @Controller('sessions')
 @UseGuards(JwtAuthGuard)
 export class SessionsController {
-  constructor(private mockService: MockService) {}
+  constructor(private authService: AuthService) {}
 
   @Get()
   findAll(@Req() req: Request) {
     const user = req.user as { id: string };
-    return this.mockService.findAllSessions(user.id);
+    return this.authService.findSessionsByUser(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    const session = this.mockService.findSessionById(id);
-    if (!session) {
-      throw new NotFoundException('Sessão não encontrada');
-    }
-    return session;
+  findOne(@Req() req: Request, @Param('id') id: string) {
+    const user = req.user as { id: string };
+    return this.authService.findSessionById(user.id, id);
   }
 
   @Post()
   create(@Req() req: Request, @Body(new ZodValidationPipe(CreateSessionSchema)) body: { title: string }) {
     const user = req.user as { id: string };
-    return this.mockService.createSession({
-      title: body.title,
-      userId: user.id,
-    });
+    return this.authService.createSession(user.id, body.title);
   }
 
+  // Só altera o título: as mensagens são criadas pelo fluxo de /queries
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: { title?: string }) {
-    const session = this.mockService.updateSession(id, body);
-    if (!session) {
-      throw new NotFoundException('Sessão não encontrada');
+  update(@Req() req: Request, @Param('id') id: string, @Body() body: { title?: string }) {
+    const user = req.user as { id: string };
+    if (!body.title) {
+      throw new BadRequestException('O título é obrigatório');
     }
-    return session;
+    return this.authService.updateSessionTitle(user.id, id, body.title);
   }
 
+  // Não implementado: o frontend envia o histórico inteiro, o que duplicaria mensagens no banco
   @Post(':id/messages')
-  appendMessages(
-    @Param('id') id: string,
-    @Body() body: { messages: Array<{ id: string; role: string; content: string; createdAt?: string; rating?: number; suggestions?: string[]; justifications?: string[]; sources?: string[]; clarifications?: string[] }> },
-  ) {
-    const session = this.mockService.appendMessages(id, body.messages as any);
-    if (!session) {
-      throw new NotFoundException('Sessão não encontrada');
-    }
-    return session;
+  appendMessages() {
+    throw new NotImplementedException('Use POST /queries para criar mensagens');
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: Request) {
-    if (!id || !id.trim()) {
-      throw new BadRequestException('ID da sessão é obrigatório');
-    }
+  async remove(@Req() req: Request, @Param('id') id: string) {
     const user = req.user as { id: string };
-    const deleted = this.mockService.deleteSession(id, user.id);
-    if (!deleted) {
-      throw new NotFoundException('Sessão não encontrada');
-    }
+    await this.authService.deleteSession(user.id, id);
     return { message: 'Sessão deletada com sucesso' };
   }
 }

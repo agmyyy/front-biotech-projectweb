@@ -9,4 +9,7 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User'
+export type * from './models/Session'
+export type * from './models/Message'
+export type * from './models/Rating'
 export type * from './commonInputTypes'
