@@ -22,10 +22,6 @@ export const QueryResponseSchema = z.object({
   query: z.string(),
   sessionId: z.string(),
   summary: z.string().optional(),
-  suggestions: z.array(z.string()).default([]),
-  justifications: z.array(z.string()).default([]),
-  sources: z.array(z.string()).default([]),
-  clarifications: z.array(z.string()).default([]),
   status: z.enum(["pending", "processing", "completed", "error"]),
   createdAt: z.string(),
 });
@@ -34,10 +30,6 @@ export const SearchResponseSchema = z.object({
   summary: z
     .string({ message: "O resumo deve ser um texto válido." })
     .min(1, "O resumo não pode estar vazio."),
-  suggestions: z.array(z.string()).default([]),
-  justifications: z.array(z.string()).default([]),
-  sources: z.array(z.string()).default([]),
-  clarifications: z.array(z.string()).optional(),
   sessionId: z
     .string({ message: "O ID da sessão é obrigatório." })
     .min(1, "O ID da sessão não pode estar vazio."),

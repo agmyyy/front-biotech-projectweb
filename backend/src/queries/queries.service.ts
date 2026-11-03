@@ -33,19 +33,12 @@ export class QueriesService {
     // A sala do WebSocket usa o id da resposta do assistente, que também serve de searchId para o feedback
     this.eventsGateway.notifyQueryCompleted(assistantMessage.id, {
       summary: masResponse.summary,
-      suggestions: masResponse.suggestions,
-      justifications: masResponse.justifications,
-      sources: masResponse.sources,
     });
 
     return {
       searchId: assistantMessage.id,
       sessionId,
       summary: masResponse.summary,
-      suggestions: masResponse.suggestions,
-      justifications: masResponse.justifications,
-      sources: masResponse.sources,
-      clarifications: masResponse.clarifications ?? [],
       status: 'completed',
       createdAt: assistantMessage.createdAt,
     };

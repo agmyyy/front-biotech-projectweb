@@ -39,14 +39,6 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  notifyClarification(queryId: string, clarification: string) {
-    this.server.to(`query:${queryId}`).emit('clarification', {
-      type: 'clarification',
-      queryId,
-      content: clarification,
-    });
-  }
-
   notifyStatus(queryId: string, status: string) {
     this.server.to(`query:${queryId}`).emit('statusUpdate', {
       type: 'statusUpdate',

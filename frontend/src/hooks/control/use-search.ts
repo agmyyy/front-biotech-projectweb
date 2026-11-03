@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { searchService } from "@/services/search-service";
 import type { SearchResponse } from "@/types";
 
-export type StreamingPhase = "summary" | "suggestions" | "justifications" | "sources" | "done";
+export type StreamingPhase = "summary" | "done";
 
 interface UseSearchReturn {
   query: string;
@@ -64,10 +64,6 @@ export function useSearch(): UseSearchReturn {
       setCurrentPhase("summary");
 
       let accumulatedSummary = "";
-      let accumulatedSuggestions: string[] = [];
-      let accumulatedJustifications: string[] = [];
-      let accumulatedSources: string[] = [];
-      let currentItemIndex = 0;
 
       try {
         await searchService.searchStream(cleanedText, sessionId, {
@@ -75,77 +71,19 @@ export function useSearch(): UseSearchReturn {
             accumulatedSummary += chunk;
             setResult((prev) => ({
               summary: accumulatedSummary,
-              suggestions: prev?.suggestions || [],
-              justifications: prev?.justifications || [],
-              sources: prev?.sources || [],
               sessionId: prev?.sessionId || sessionId || "",
             }));
-          },
-          onSuggestionChunk: (chunk) => {
-            if (accumulatedSuggestions.length === 0) {
-              accumulatedSuggestions = [""];
-              currentItemIndex = 0;
-            }
-            accumulatedSuggestions[currentItemIndex] += chunk;
-            setResult((prev) => ({
-              summary: prev?.summary || accumulatedSummary,
-              suggestions: [...accumulatedSuggestions],
-              justifications: prev?.justifications || [],
-              sources: prev?.sources || [],
-              sessionId: prev?.sessionId || sessionId || "",
-            }));
-          },
-          onSuggestionDone: () => {
-            setCurrentPhase("justifications");
-            currentItemIndex = 0;
-          },
-          onJustificationChunk: (chunk) => {
-            if (accumulatedJustifications.length === 0) {
-              accumulatedJustifications = [""];
-              currentItemIndex = 0;
-            }
-            accumulatedJustifications[currentItemIndex] += chunk;
-            setResult((prev) => ({
-              summary: prev?.summary || accumulatedSummary,
-              suggestions: prev?.suggestions || accumulatedSuggestions,
-              justifications: [...accumulatedJustifications],
-              sources: prev?.sources || [],
-              sessionId: prev?.sessionId || sessionId || "",
-            }));
-          },
-          onJustificationDone: () => {
-            setCurrentPhase("sources");
-            currentItemIndex = 0;
-          },
-          onSourceChunk: (chunk) => {
-            if (accumulatedSources.length === 0) {
-              accumulatedSources = [""];
-              currentItemIndex = 0;
-            }
-            accumulatedSources[currentItemIndex] += chunk;
-            setResult((prev) => ({
-              summary: prev?.summary || accumulatedSummary,
-              suggestions: prev?.suggestions || accumulatedSuggestions,
-              justifications: prev?.justifications || accumulatedJustifications,
-              sources: [...accumulatedSources],
-              sessionId: prev?.sessionId || sessionId || "",
-            }));
-          },
-          onSourceDone: () => {
-            setCurrentPhase("done");
           },
           onDone: (data) => {
+            // searchId é o id da mensagem do assistente, usado na avaliação
             const finalResponse: SearchResponse = {
               summary: accumulatedSummary,
-              sources: accumulatedSources,
-              suggestions: accumulatedSuggestions,
-              justifications: accumulatedJustifications,
-              clarifications: undefined,
               sessionId: data.sessionId,
               searchId: data.searchId,
             };
             finalResultRef.current = finalResponse;
             setResult(finalResponse);
+            setCurrentPhase("done");
             setLoading(false);
           },
           signal: abortControllerRef.current.signal,

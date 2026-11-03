@@ -1,16 +1,10 @@
 import { apiClient } from './api-client';
-import type { SearchRequest, SearchResponse, StreamChunk } from '@/types';
+import type { SearchRequest, SearchResponse } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface SearchStreamCallbacks {
   onChunk: (text: string) => void;
-  onSuggestionChunk: (text: string) => void;
-  onSuggestionDone: () => void;
-  onJustificationChunk: (text: string) => void;
-  onJustificationDone: () => void;
-  onSourceChunk: (text: string) => void;
-  onSourceDone: () => void;
   onDone: (data: { sessionId: string; searchId: string }) => void;
   signal?: AbortSignal;
 }
@@ -67,27 +61,6 @@ export const searchService = {
       for (let i = 0; i < words.length; i++) {
         await new Promise((r) => setTimeout(r, 30));
         callbacks.onChunk(words[i] + (i < words.length - 1 ? ' ' : ''));
-      }
-    }
-
-    if (data.suggestions) {
-      for (const suggestion of data.suggestions) {
-        callbacks.onSuggestionChunk(suggestion);
-        callbacks.onSuggestionDone();
-      }
-    }
-
-    if (data.justifications) {
-      for (const justification of data.justifications) {
-        callbacks.onJustificationChunk(justification);
-        callbacks.onJustificationDone();
-      }
-    }
-
-    if (data.sources) {
-      for (const source of data.sources) {
-        callbacks.onSourceChunk(source);
-        callbacks.onSourceDone();
       }
     }
 

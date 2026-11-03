@@ -363,9 +363,6 @@ export function Dashboard() {
                     key={msg.id || index}
                     result={{
                       summary: msg.content,
-                      suggestions: [],
-                      justifications: [],
-                      sources: [],
                       sessionId: activeSession?.id ?? "",
                     }}
                     animated={false}
