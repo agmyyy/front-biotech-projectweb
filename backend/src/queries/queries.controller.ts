@@ -2,9 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  Delete,
   Body,
-  Param,
   Query,
   UseGuards,
   Req,
@@ -37,22 +35,5 @@ export class QueriesController {
   findAll(@Req() req: Request, @Query('sessionId') sessionId?: string) {
     const user = req.user as { id: string };
     return this.queriesService.findAll(user.id, sessionId);
-  }
-
-  @Get(':id')
-  findOne(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { id: string };
-    return this.queriesService.findOne(user.id, id);
-  }
-
-  @Delete(':id')
-  remove(@Req() req: Request, @Param('id') id: string) {
-    const user = req.user as { id: string };
-    return this.queriesService.remove(user.id, id);
-  }
-
-  @Post(':id/clarify')
-  addClarification() {
-    return this.queriesService.addClarification();
   }
 }

@@ -1,9 +1,7 @@
 import {
   Controller,
   Post,
-  Get,
   Body,
-  Param,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -26,11 +24,5 @@ export class FeedbackController {
       searchId: body.searchId,
       userId: user.id,
     });
-  }
-
-  @Get(':searchId')
-  findBySearchId(@Req() req: Request, @Param('searchId') searchId: string) {
-    const user = req.user as { id: string };
-    return this.feedbackService.findBySearchId(user.id, searchId);
   }
 }

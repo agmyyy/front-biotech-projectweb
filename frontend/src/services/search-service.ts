@@ -11,7 +11,7 @@ export interface SearchStreamCallbacks {
   onJustificationDone: () => void;
   onSourceChunk: (text: string) => void;
   onSourceDone: () => void;
-  onDone: (data: { sessionId: string }) => void;
+  onDone: (data: { sessionId: string; searchId: string }) => void;
   signal?: AbortSignal;
 }
 
@@ -91,7 +91,7 @@ export const searchService = {
       }
     }
 
-    callbacks.onDone({ sessionId: data.sessionId || '' });
+    callbacks.onDone({ sessionId: data.sessionId || "", searchId: data.searchId || "" });
   },
 
   async getHistory(sessionId: string): Promise<SearchResponse[]> {

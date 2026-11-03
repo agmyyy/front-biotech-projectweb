@@ -142,6 +142,7 @@ export function useSearch(): UseSearchReturn {
               justifications: accumulatedJustifications,
               clarifications: undefined,
               sessionId: data.sessionId,
+              searchId: data.searchId,
             };
             finalResultRef.current = finalResponse;
             setResult(finalResponse);

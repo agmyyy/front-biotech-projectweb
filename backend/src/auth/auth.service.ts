@@ -258,18 +258,6 @@ export class AuthService {
     }
   }
 
-  async findRatingByMessage(userId: string, messageId: string) {
-    await this.findOwnedMessage(userId, messageId);
-
-    try {
-      return await prisma.rating.findUnique({
-        where: { messageId },
-      });
-    } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao buscar avaliação");
-    }
-  }
-
   // Busca a sessão com as mensagens e suas avaliações, após checar a posse
   async findSessionById(userId: string, sessionId: string) {
     await this.findOwnedSession(userId, sessionId);
@@ -310,16 +298,6 @@ export class AuthService {
       await prisma.session.delete({ where: { id: sessionId } });
     } catch (error) {
       throw this.mapDatabaseError(error, "Erro ao excluir sessão");
-    }
-  }
-
-  async deleteMessage(userId: string, messageId: string) {
-    await this.findOwnedMessage(userId, messageId);
-
-    try {
-      await prisma.message.delete({ where: { id: messageId } });
-    } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao excluir mensagem");
     }
   }
 

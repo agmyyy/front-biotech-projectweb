@@ -7,7 +7,6 @@ import {
   Body,
   Param,
   BadRequestException,
-  NotImplementedException,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -48,12 +47,6 @@ export class SessionsController {
       throw new BadRequestException('O título é obrigatório');
     }
     return this.authService.updateSessionTitle(user.id, id, body.title);
-  }
-
-  // Não implementado: o frontend envia o histórico inteiro, o que duplicaria mensagens no banco
-  @Post(':id/messages')
-  appendMessages() {
-    throw new NotImplementedException('Use POST /queries para criar mensagens');
   }
 
   @Delete(':id')

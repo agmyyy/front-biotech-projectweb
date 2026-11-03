@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { chatService } from "@/services/chat-service";
-import type { ChatMessage, ChatSession, FeedbackRating } from "@/types";
+import type { ChatSession } from "@/types";
 
 interface UseChatReturn {
   sessions: ChatSession[];
@@ -13,18 +13,12 @@ interface UseChatReturn {
   loadSessions: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   createSession: (title: string) => Promise<ChatSession | null>;
-  appendMessages: (sessionId: string, messages: ChatMessage[]) => Promise<void>;
-  updateMessageRating: (
-    sessionId: string,
-    messageId: string,
-    rating: number,
-  ) => Promise<void>;
+  refreshSession: (sessionId: string) => Promise<void>;
   deleteSession: (
     sessionId: string,
     toastId?: string | number,
   ) => Promise<boolean>;
   renameSession: (sessionId: string, title: string) => Promise<boolean>;
-  sendFeedback: (feedback: FeedbackRating) => Promise<void>;
   setActiveSession: (session: ChatSession | null) => void;
 }
 
@@ -86,75 +80,21 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
-  const activeSessionRef = useRef<ChatSession | null>(null);
+  // Recarrega a sessão do servidor após a busca, pois o backend já salva pergunta e resposta em POST /queries
+  const refreshSession = useCallback(async (sessionId: string) => {
+    try {
+      const updated = await chatService.getSession(sessionId);
+      if (!updated) return;
 
-  useEffect(() => {
-    activeSessionRef.current = activeSession;
-  });
-
-  const appendMessages = useCallback(
-    async (sessionId: string, newMessages: ChatMessage[]) => {
-      if (newMessages.length === 0) return;
-
-      try {
-        const existingMessages =
-          activeSessionRef.current?.id === sessionId
-            ? activeSessionRef.current.messages
-            : [];
-        const mergedMessages = [...existingMessages, ...newMessages];
-
-        const updated = await chatService.appendSessionMessages(
-          sessionId,
-          mergedMessages,
-        );
-
-        if (!updated) return;
-
-        setSessions((prev) =>
-          prev.map((s) => (s.id === sessionId ? updated : s)),
-        );
-        setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao salvar mensagens",
-        );
-      }
-    },
-    [],
-  );
-
-  const updateMessageRating = useCallback(
-    async (sessionId: string, messageId: string, rating: number) => {
-      const session =
-        activeSessionRef.current?.id === sessionId
-          ? activeSessionRef.current
-          : null;
-      if (!session) return;
-
-      const updatedMessages = session.messages.map((msg) =>
-        msg.id === messageId ? { ...msg, rating } : msg,
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? updated : s)),
       );
-
-      try {
-        const updated = await chatService.appendSessionMessages(
-          sessionId,
-          updatedMessages,
-        );
-
-        if (!updated) return;
-
-        setSessions((prev) =>
-          prev.map((s) => (s.id === sessionId ? updated : s)),
-        );
-        setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao salvar avaliação",
-        );
-      }
-    },
-    [],
-  );
+      // Só atualiza se a sessão ainda for a ativa, para não sobrescrever um chat aberto depois
+      setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar o chat");
+    }
+  }, []);
 
   const deleteSession = useCallback(
     async (sessionId: string, toastId?: string | number) => {
@@ -227,14 +167,6 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
-  const sendFeedback = useCallback(async (feedback: FeedbackRating) => {
-    try {
-      await chatService.sendFeedback(feedback);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar feedback");
-    }
-  }, []);
-
   useEffect(() => {
     loadSessions();
   }, [loadSessions]);
@@ -247,11 +179,9 @@ export function useChat(): UseChatReturn {
     loadSessions,
     loadSession,
     createSession,
-    appendMessages,
-    updateMessageRating,
+    refreshSession,
     deleteSession,
     renameSession,
-    sendFeedback,
     setActiveSession,
   };
 }

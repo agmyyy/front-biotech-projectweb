@@ -1,4 +1,4 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { MasService } from '../mas/mas.service';
 import { EventsGateway } from '../events/events.gateway';
@@ -56,19 +56,5 @@ export class QueriesService {
       return [];
     }
     return this.authService.findMessagesBySession(userId, sessionId);
-  }
-
-  findOne(userId: string, messageId: string) {
-    return this.authService.findOwnedMessage(userId, messageId);
-  }
-
-  async remove(userId: string, messageId: string) {
-    await this.authService.deleteMessage(userId, messageId);
-    return { message: 'Consulta deletada com sucesso' };
-  }
-
-  // Não implementado: o schema ainda não guarda esclarecimentos
-  addClarification() {
-    throw new NotImplementedException('Esclarecimentos ainda não são armazenados');
   }
 }

@@ -26,7 +26,8 @@ export interface ChatSession {
 }
 
 export type SearchRequest = SharedSearchInput;
-export type SearchResponse = SharedSearchResponse;
+// searchId é o id da mensagem do assistente, usado para avaliar a resposta
+export type SearchResponse = SharedSearchResponse & { searchId?: string };
 export type FeedbackRating = SharedFeedbackInput;
 export type User = SharedUser;
 

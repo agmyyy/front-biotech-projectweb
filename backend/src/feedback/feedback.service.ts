@@ -9,8 +9,4 @@ export class FeedbackService {
   create(data: { rating: number; searchId: string; userId: string }) {
     return this.authService.createRating(data.userId, data.rating, data.searchId);
   }
-
-  findBySearchId(userId: string, searchId: string) {
-    return this.authService.findRatingByMessage(userId, searchId);
-  }
 }

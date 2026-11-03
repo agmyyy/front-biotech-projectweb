@@ -37,6 +37,8 @@ export function Dashboard() {
   }, []);
 
   const {
+    query,
+    setQuery,
     loading,
     result,
     setResult,
@@ -51,8 +53,7 @@ export function Dashboard() {
     sessions,
     activeSession,
     createSession,
-    appendMessages,
-    updateMessageRating,
+    refreshSession,
     deleteSession,
     renameSession,
     loadSession,
@@ -67,7 +68,7 @@ export function Dashboard() {
   const { containerRef, autoScrollEnabled, scrollToBottom } = useAutoScroll();
 
   const { sendFeedback, resetFeedback } = useFeedbackApi({
-    searchId: result?.sessionId || activeSession?.id,
+    searchId: result?.searchId,
   });
 
   /**
@@ -121,43 +122,23 @@ export function Dashboard() {
 
       syncUrl(currentSession.id);
 
-      // Gera o id da resposta agora para que a chave do balão ao vivo
-      // seja estável durante a transição ao vivo, persistido.
+      // Id estável da resposta ao vivo, usado como chave do balão durante a transição
       const pendingAnswerId = crypto.randomUUID();
       setPendingAnswerId(pendingAnswerId);
 
-      // Persiste a pergunta no histórico da sessão
-      await appendMessages(currentSession.id, [
-        {
-          id: crypto.randomUUID(),
-          role: "user",
-          content: cleanedText,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      // O backend salva pergunta e resposta em POST /queries, então não há persistência extra aqui
+      await executeSearch(cleanedText, currentSession.id);
 
-      const searchResult = await executeSearch(cleanedText, currentSession.id);
-
-      if (searchResult && searchResult.summary) {
-        await appendMessages(currentSession.id, [
-          {
-            id: pendingAnswerId,
-            role: "assistant",
-            content: searchResult.summary,
-            createdAt: new Date().toISOString(),
-            suggestions: searchResult.suggestions,
-            justifications: searchResult.justifications,
-            sources: searchResult.sources,
-            clarifications: searchResult.clarifications,
-          },
-        ]);
-      }
+      // Recarrega o histórico e limpa a pergunta ao vivo, que agora já aparece pela sessão
+      await refreshSession(currentSession.id);
+      setQuery("");
     },
     [
       activeSession,
       createSession,
       executeSearch,
-      appendMessages,
+      refreshSession,
+      setQuery,
       resetGeneration,
       resetFeedback,
       setResult,
@@ -300,11 +281,8 @@ export function Dashboard() {
   const handleFeedback = useCallback(
     (rating: number) => {
       sendFeedback(rating);
-      if (activeSession && pendingAnswerId) {
-        updateMessageRating(activeSession.id, pendingAnswerId, rating);
-      }
     },
-    [sendFeedback, activeSession, pendingAnswerId, updateMessageRating],
+    [sendFeedback],
   );
 
   const sessionMessages = activeSession?.messages ?? [];
@@ -412,6 +390,10 @@ export function Dashboard() {
                   />
                 ),
               )}
+
+            {query && (loading || liveMessage) && (
+              <SearchInput text={query} />
+            )}
 
             {liveMessage && (
               <SearchResult
