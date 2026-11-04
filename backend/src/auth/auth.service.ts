@@ -32,7 +32,7 @@ const scryptAsync = promisify(scrypt) as (
 
 const SCRYPT_KEY_LENGTH = 64;
 const DEFAULT_SESSION_TITLE = "Nova conversa";
-const TITLE_MAX_LENGTH = 60;
+const TITLE_MAX_LENGTH = 200;
 const VALID_ROLES = ["user", "assistant"];
 const RATING_MIN = 1;
 const RATING_MAX = 5;
@@ -62,7 +62,6 @@ export class AuthService {
         },
       });
     } catch (error) {
-      // O @unique do e-mail no banco é a barreira real contra duplicidade, inclusive em requisições simultâneas
       if (this.isUniqueViolation(error)) {
         throw new ConflictException("E-mail já está em uso");
       }
@@ -391,8 +390,8 @@ export class AuthService {
     return new InternalServerErrorException(message);
   }
 
-  private generateToken(user: { id: string; email: string; name: string }) {
-    const payload = { sub: user.id, email: user.email, name: user.name };
-    return this.jwtService.sign(payload);
+  // O payload carrega só o identificador; nome e e-mail ficam no banco, legíveis apenas pelo servidor
+  private generateToken(user: { id: string }) {
+    return this.jwtService.sign({ sub: user.id });
   }
 }

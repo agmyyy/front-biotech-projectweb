@@ -29,17 +29,10 @@ export const searchService = {
     sessionId: string | undefined,
     callbacks: SearchStreamCallbacks,
   ): Promise<void> {
-    const token = apiClient.getToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await fetch(`${API_BASE_URL}/queries`, {
       method: 'POST',
-      headers,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, sessionId }),
       signal: callbacks.signal,
     });

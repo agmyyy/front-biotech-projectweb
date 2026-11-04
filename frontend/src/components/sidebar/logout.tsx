@@ -5,6 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { authService } from "@/services/auth-service";
+import { toast } from "sonner";
 
 interface LogoutProps {
   isCollapsed?: boolean;
@@ -13,8 +14,14 @@ interface LogoutProps {
 export function Logout({ isCollapsed }: LogoutProps) {
   const router = useRouter();
 
-  const handleLogout = () => {
-    authService.logout();
+  const handleLogout = async () => {
+    const encerrada = await authService.logout();
+
+    if (!encerrada) {
+      toast.error("Não foi possível encerrar a sessão. Tente novamente.");
+      return;
+    }
+
     router.push("/login");
   };
 
