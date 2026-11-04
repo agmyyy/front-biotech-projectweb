@@ -14,7 +14,11 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { UserRegisterSchema, UserLoginSchema } from 'shared';
 import { Request, Response } from 'express';
-import { AUTH_COOKIE_NAME, buildAuthCookieOptions } from './auth-cookie';
+import {
+  AUTH_COOKIE_NAME,
+  buildAuthCookieOptions,
+  extractTokenFromCookie,
+} from './auth-cookie';
 
 @Controller('auth')
 export class AuthController {
@@ -44,11 +48,15 @@ export class AuthController {
     return { user };
   }
 
-  // Remove o cookie no navegador; as opções precisam ser as mesmas do login para o navegador localizá-lo
+  // Revoga as sessões ativas do usuário e remove o cookie mesmo se o token já estiver inválido
   @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.revokeToken(extractTokenFromCookie(req));
     res.clearCookie(AUTH_COOKIE_NAME, buildAuthCookieOptions(this.isProduction()));
-    return { message: 'Sessão encerrada' };
+    return { message: 'Sessão encerrada em todos os dispositivos' };
   }
 
   @UseGuards(JwtAuthGuard)

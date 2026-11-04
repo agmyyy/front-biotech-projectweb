@@ -18,6 +18,7 @@ import { useChat } from "@/hooks/control/use-chat";
 import { useFeedbackApi } from "@/hooks/api/use-feedback-api";
 import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
+import { authService } from "@/services/auth-service";
 
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schemas/auth.schema";
@@ -64,10 +65,33 @@ export function Dashboard() {
 
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState(false);
   const confirmToastId = useRef<string | number | null>(null);
   const { containerRef, autoScrollEnabled, scrollToBottom } = useAutoScroll();
 
   const { sendFeedback } = useFeedbackApi();
+
+  const validateSession = useCallback(async () => {
+    setIsSessionReady(false);
+    setSessionError(false);
+    let isUnauthorized = false;
+
+    try {
+      setUser(await authService.getProfile());
+    } catch (error) {
+      isUnauthorized =
+        error instanceof Error && error.message.startsWith("Sessão expirada");
+
+      if (!isUnauthorized) {
+        setSessionError(true);
+      }
+    } finally {
+      if (!isUnauthorized) {
+        setIsSessionReady(true);
+      }
+    }
+  }, []);
 
   /**
    * Cria um novo chat limpo na interface.
@@ -154,19 +178,10 @@ export function Dashboard() {
     [loadSession, clearSearch, completeGeneration, syncUrl],
   );
 
-  /**
-   * Lê o usuário do localStorage ao montar.
-   */
+  // O perfil validado pelo servidor substitui qualquer dado de usuário em cache local
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("biotech_user");
-      if (stored) {
-        setUser(JSON.parse(stored));
-      }
-    } catch {
-      // JSON inválido ou indisponível
-    }
-  }, []);
+    void validateSession();
+  }, [validateSession]);
 
   /**
    * Ao montar, restaura a sessão indicada na URL (?chat=id).
@@ -323,6 +338,25 @@ export function Dashboard() {
     autoScrollEnabled,
     scrollToBottom,
   ]);
+
+  if (!isSessionReady) {
+    return (
+      <main className="flex min-h-screen items-center justify-center" aria-label="Validando sessão">
+        <p>Validando sua sessão...</p>
+      </main>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4" aria-label="Erro ao validar sessão">
+        <p>Não foi possível validar sua sessão.</p>
+        <button type="button" onClick={() => void validateSession()}>
+          Tentar novamente
+        </button>
+      </main>
+    );
+  }
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>

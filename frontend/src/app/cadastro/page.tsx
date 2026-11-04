@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth-service";
 import { toast } from "sonner";
@@ -12,8 +12,33 @@ export default function Cadastro() {
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    authService
+      .getProfile()
+      .then(() => {
+        if (isMounted) {
+          router.replace("/dashboard");
+        }
+      })
+      .catch(() => {
+        // Uma sessão inválida é limpa pelo tratamento central de 401
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCheckingSession(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,14 +46,11 @@ export default function Cadastro() {
     setError("");
 
     try {
-      const response = await authService.register({
+      await authService.register({
         name: nome,
         email,
         password,
       });
-      if (response.user) {
-        localStorage.setItem("biotech_user", JSON.stringify(response.user));
-      }
       toast.success("Conta criada com sucesso!");
       router.push("/dashboard");
     } catch (err) {
@@ -132,8 +154,16 @@ export default function Cadastro() {
             </div>
           </div>
 
-          <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? "Criando conta..." : "Continuar"}
+          <button
+            className="btn-primary"
+            type="submit"
+            disabled={loading || isCheckingSession}
+          >
+            {isCheckingSession
+              ? "Verificando sessão..."
+              : loading
+                ? "Criando conta..."
+                : "Continuar"}
           </button>
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </form>

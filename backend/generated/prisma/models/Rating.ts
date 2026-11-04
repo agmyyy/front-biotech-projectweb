@@ -366,14 +366,6 @@ export type RatingUncheckedUpdateOneWithoutMessageNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.RatingUpdateToOneWithWhereWithoutMessageInput, Prisma.RatingUpdateWithoutMessageInput>, Prisma.RatingUncheckedUpdateWithoutMessageInput>
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type RatingCreateWithoutMessageInput = {
   id?: string
   score: number

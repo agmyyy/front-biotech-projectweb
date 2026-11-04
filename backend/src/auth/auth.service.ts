@@ -59,6 +59,7 @@ export class AuthService {
           id: true,
           name: true,
           email: true,
+          sessionVersion: true,
         },
       });
     } catch (error) {
@@ -71,7 +72,11 @@ export class AuthService {
     const token = this.generateToken(user);
 
     return {
-      user,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
       token,
     };
   }
@@ -390,8 +395,41 @@ export class AuthService {
     return new InternalServerErrorException(message);
   }
 
-  // O payload carrega só o identificador; nome e e-mail ficam no banco, legíveis apenas pelo servidor
-  private generateToken(user: { id: string }) {
-    return this.jwtService.sign({ sub: user.id });
+  // A versão no token permite revogar todas as sessões ativas de um usuário
+  private generateToken(user: { id: string; sessionVersion: number }) {
+    return this.jwtService.sign({ sub: user.id, ver: user.sessionVersion });
+  }
+
+  // Invalida em todos os dispositivos os tokens que carregam a versão atual
+  async revokeToken(token: string | null) {
+    if (!token) {
+      return;
+    }
+
+    let payload: { sub: string; ver?: number };
+    try {
+      payload = await this.jwtService.verifyAsync<{ sub: string; ver?: number }>(token, {
+        ignoreExpiration: true,
+      });
+    } catch {
+      // Tokens ausentes, expirados ou inválidos já não podem autorizar requisições
+      return;
+    }
+
+    if (!payload.sub) {
+      return;
+    }
+
+    try {
+      await prisma.user.updateMany({
+        where: {
+          id: payload.sub,
+          sessionVersion: payload.ver ?? 0,
+        },
+        data: { sessionVersion: { increment: 1 } },
+      });
+    } catch (error) {
+      throw this.mapDatabaseError(error, "Erro ao encerrar sessões");
+    }
   }
 }

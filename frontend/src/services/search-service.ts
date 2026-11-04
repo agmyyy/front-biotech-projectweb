@@ -1,4 +1,5 @@
 import { apiClient } from './api-client';
+import { handleUnauthorizedSession } from "./auth-session";
 import type { SearchRequest, SearchResponse } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -36,6 +37,11 @@ export const searchService = {
       body: JSON.stringify({ query, sessionId }),
       signal: callbacks.signal,
     });
+
+    if (response.status === 401) {
+      await handleUnauthorizedSession();
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
 
     if (!response.ok) {
       let message = 'Erro na requisição de busca';

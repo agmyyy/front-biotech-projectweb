@@ -66,6 +66,7 @@ export const authService = {
 
     try {
       localStorage.removeItem("biotech_user");
+      localStorage.removeItem("biotech_token");
     } catch {
       // localStorage indisponível
     }

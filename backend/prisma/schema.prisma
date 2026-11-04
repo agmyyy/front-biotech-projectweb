@@ -12,13 +12,14 @@ generator client {
 }
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String
-  name      String
-  sessions  Session[] // um user ter vários chats 1:n
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password       String
+  name           String
+  sessionVersion Int       @default(0)
+  sessions       Session[] // um user ter vários chats 1:n
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@map("users")
 }

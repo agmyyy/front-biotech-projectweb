@@ -7,6 +7,7 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { ConfigService } from "@nestjs/config";
 import { prisma } from "../lib/prisma";
+import { extractTokenFromCookie } from "./auth-cookie";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -16,14 +17,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new Error("JWT_SECRET não está definido nas variáveis de ambiente");
     }
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([extractTokenFromCookie]),
       ignoreExpiration: false,
       secretOrKey: secret,
     });
   }
 
-  // Confere no banco se o usuário do token ainda existe, para barrar contas excluídas
-  async validate(payload: { sub: string; email: string }) {
+  // Confere existência e versão no banco para barrar contas excluídas e sessões revogadas
+  async validate(payload: { sub: string; ver?: number }) {
+    if (!payload.sub) {
+      throw new UnauthorizedException("Token inválido");
+    }
+
     let user;
     try {
       user = await prisma.user.findUnique({
@@ -32,6 +37,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           id: true,
           email: true,
           name: true,
+          sessionVersion: true,
         },
       });
     } catch {
@@ -40,6 +46,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       throw new UnauthorizedException("Usuário não encontrado");
+    }
+
+    // Tokens anteriores à migração não possuem ver e são tratados como versão zero
+    if ((payload.ver ?? 0) !== user.sessionVersion) {
+      throw new UnauthorizedException("Sessão revogada");
     }
 
     return user;
