@@ -1,14 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, BadGatewayException, HttpException } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { MasService } from '../mas/mas.service';
-import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class QueriesService {
   constructor(
     private authService: AuthService,
     private masService: MasService,
-    private eventsGateway: EventsGateway,
   ) {}
 
   // Grava a pergunta e a resposta como mensagens da mesma sessão
@@ -17,25 +15,37 @@ export class QueriesService {
 
     const userMessage = await this.authService.createMessage(data.userId, sessionId, data.query, 'user');
 
-    const masResponse = await this.masService.processQuery({
-      query: data.query,
-      queryId: userMessage.id,
-      sessionId,
-    });
+    // A pergunta do usuário já está gravada; se o MAS ou a resposta falharem,
+    // mantemos o histórico (o usuário digitou) e respondemos 502
+    let masResponse;
+    let assistantMessage;
+    try {
+      masResponse = await this.masService.processQuery({
+        query: data.query,
+        queryId: userMessage.id,
+        sessionId,
+      });
 
-    const assistantMessage = await this.authService.createMessage(
-      data.userId,
-      sessionId,
-      masResponse.summary,
-      'assistant',
-    );
-
-    // A sala do WebSocket usa o id da resposta do assistente, que também serve de searchId para o feedback
-    this.eventsGateway.notifyQueryCompleted(assistantMessage.id, {
-      summary: masResponse.summary,
-    });
+      assistantMessage = await this.authService.createMessage(
+        data.userId,
+        sessionId,
+        masResponse.summary,
+        'assistant',
+      );
+    } catch (error) {
+      // Erros já mapeados (banco) mantêm o status original; falha vinda do MAS vira 502
+      if (error instanceof HttpException) {
+        console.error('Falha ao gravar a resposta do assistente:', error);
+        throw error;
+      }
+      console.error('Falha ao processar a pergunta no MAS:', error);
+      throw new BadGatewayException(
+        'Não foi possível processar a pergunta no momento. Tente novamente.',
+      );
+    }
 
     return {
+      // O id da resposta do assistente serve de searchId para a avaliação (feedback)
       searchId: assistantMessage.id,
       sessionId,
       summary: masResponse.summary,
@@ -45,8 +55,9 @@ export class QueriesService {
   }
 
   findAll(userId: string, sessionId?: string) {
+    // Sem sessionId não há como filtrar as mensagens; devolver [] esconderia o uso incorreto da rota
     if (!sessionId) {
-      return [];
+      throw new BadRequestException('O parâmetro sessionId é obrigatório');
     }
     return this.authService.findMessagesBySession(userId, sessionId);
   }

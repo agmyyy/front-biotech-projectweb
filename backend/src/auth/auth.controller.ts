@@ -7,6 +7,7 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
@@ -28,22 +29,27 @@ export class AuthController {
     private configService: ConfigService,
   ) {}
 
+  // 5 tentativas por minuto por IP: fecha a janela de força bruta em login e cadastro
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   async register(
     @Body(new ZodValidationPipe(UserRegisterSchema)) body: { name: string; email: string; password: string },
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, token } = await this.authService.register(body);
+    const { user, token } = await this.authService.register(body, { ip: req.ip });
     this.setAuthCookie(res, token);
     return { user };
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   async login(
     @Body(new ZodValidationPipe(UserLoginSchema)) body: { email: string; password: string },
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, token } = await this.authService.login(body);
+    const { user, token } = await this.authService.login(body, { ip: req.ip });
     this.setAuthCookie(res, token);
     return { user };
   }
@@ -54,7 +60,7 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    await this.authService.revokeToken(extractTokenFromCookie(req));
+    await this.authService.revokeToken(extractTokenFromCookie(req), { ip: req.ip });
     res.clearCookie(AUTH_COOKIE_NAME, buildAuthCookieOptions(this.isProduction()));
     return { message: 'Sessão encerrada em todos os dispositivos' };
   }

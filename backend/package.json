@@ -16,9 +16,7 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/platform-socket.io": "^11.0.0",
     "@nestjs/throttler": "^6.7.1",
-    "@nestjs/websockets": "^11.0.0",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "class-transformer": "^0.5.1",
@@ -30,7 +28,6 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
     "shared": "*",
-    "socket.io": "^4.8.0",
     "uuid": "^11.0.0",
     "zod": "^3.24.0"
   },

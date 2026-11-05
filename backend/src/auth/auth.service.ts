@@ -11,6 +11,7 @@ import { prisma } from "../lib/prisma";
 import { JwtService } from "@nestjs/jwt";
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
+import { logAuthAudit, AuthAuditContext } from "../common/logger/auth-audit";
 
 export type RegisterInput = {
   name: string;
@@ -28,9 +29,15 @@ const scryptAsync = promisify(scrypt) as (
   password: string,
   salt: string,
   keylen: number,
+  options?: { N: number; r: number; p: number },
 ) => Promise<Buffer>;
 
 const SCRYPT_KEY_LENGTH = 64;
+// Parâmetros fixados explicitamente: os defaults do Node podem mudar entre versões
+// e quebrariam a validação de senhas já gravadas
+const SCRYPT_PARAMS: { N: number; r: number; p: number } = { N: 16384, r: 8, p: 1 };
+// Limite superior do N aceito no hash, para não estourar memória no login
+const SCRYPT_MAX_N = 1 << 20;
 const DEFAULT_SESSION_TITLE = "Nova conversa";
 const TITLE_MAX_LENGTH = 200;
 const VALID_ROLES = ["user", "assistant"];
@@ -42,7 +49,7 @@ export class AuthService {
   constructor(private jwtService: JwtService) {}
 
   //CADASTRO
-  async register(data: RegisterInput) {
+  async register(data: RegisterInput, context: AuthAuditContext = {}) {
     const email = this.normalizeEmail(data.email);
     // Hash antes de salvar: o banco nunca recebe a senha em texto puro
     const passwordHash = await this.hashPassword(data.password);
@@ -66,10 +73,12 @@ export class AuthService {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException("E-mail já está em uso");
       }
-      throw this.mapDatabaseError(error, "Erro ao cadastrar usuário");
+      this.mapDatabaseError(error, "Erro ao cadastrar usuário");
     }
 
     const token = this.generateToken(user);
+
+    logAuthAudit("register", { userId: user.id, email: user.email }, context);
 
     return {
       user: {
@@ -81,7 +90,7 @@ export class AuthService {
     };
   }
   //LOGIN
-  async login(data: LoginInput) {
+  async login(data: LoginInput, context: AuthAuditContext = {}) {
     const email = this.normalizeEmail(data.email);
 
     let user;
@@ -90,12 +99,13 @@ export class AuthService {
         where: { email },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao buscar usuário");
+      this.mapDatabaseError(error, "Erro ao buscar usuário");
     }
 
     if (!user) {
       // Gera um hash mesmo sem usuário, para o tempo de resposta não revelar quais e-mails existem
       await this.hashPassword(data.password);
+      logAuthAudit("login_failed", { email, reason: "user_not_found" }, context);
       throw new UnauthorizedException("Credenciais inválidas");
     }
 
@@ -104,10 +114,13 @@ export class AuthService {
       user.password,
     );
     if (!isPasswordValid) {
+      logAuthAudit("login_failed", { email, reason: "invalid_password" }, context);
       throw new UnauthorizedException("Credenciais inválidas");
     }
 
     const token = this.generateToken(user);
+
+    logAuthAudit("login_success", { userId: user.id, email: user.email }, context);
 
     return {
       user: {
@@ -132,7 +145,7 @@ export class AuthService {
         },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao buscar perfil");
+      this.mapDatabaseError(error, "Erro ao buscar perfil");
     }
 
     if (!user) {
@@ -152,7 +165,7 @@ export class AuthService {
         },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao criar sessão");
+      this.mapDatabaseError(error, "Erro ao criar sessão");
     }
   }
   //IDENTIFICA A SESSÃO PELO ID DO USER
@@ -163,7 +176,7 @@ export class AuthService {
         orderBy: { updatedAt: "desc" },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao listar sessões");
+      this.mapDatabaseError(error, "Erro ao listar sessões");
     }
   }
 
@@ -210,7 +223,7 @@ export class AuthService {
         });
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao criar mensagem");
+      this.mapDatabaseError(error, "Erro ao criar mensagem");
     }
   }
   async findMessagesBySession(userId: string, sessionId: string) {
@@ -225,7 +238,7 @@ export class AuthService {
         orderBy: { createdAt: "asc" },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao listar mensagens");
+      this.mapDatabaseError(error, "Erro ao listar mensagens");
     }
   }
 
@@ -258,7 +271,7 @@ export class AuthService {
       if (this.isUniqueViolation(error)) {
         throw new ConflictException("Esta mensagem já foi avaliada");
       }
-      throw this.mapDatabaseError(error, "Erro ao criar avaliação");
+      this.mapDatabaseError(error, "Erro ao criar avaliação");
     }
   }
 
@@ -277,7 +290,7 @@ export class AuthService {
         },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao buscar sessão");
+      this.mapDatabaseError(error, "Erro ao buscar sessão");
     }
   }
 
@@ -290,7 +303,7 @@ export class AuthService {
         data: { title: this.buildTitle(title) },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao atualizar sessão");
+      this.mapDatabaseError(error, "Erro ao atualizar sessão");
     }
   }
 
@@ -301,7 +314,7 @@ export class AuthService {
     try {
       await prisma.session.delete({ where: { id: sessionId } });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao excluir sessão");
+      this.mapDatabaseError(error, "Erro ao excluir sessão");
     }
   }
 
@@ -314,7 +327,7 @@ export class AuthService {
         select: { id: true },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao buscar sessão");
+      this.mapDatabaseError(error, "Erro ao buscar sessão");
     }
 
     if (!session) {
@@ -339,7 +352,7 @@ export class AuthService {
         },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao buscar mensagem");
+      this.mapDatabaseError(error, "Erro ao buscar mensagem");
     }
 
     if (!message) {
@@ -358,23 +371,55 @@ export class AuthService {
     return text.trim().slice(0, TITLE_MAX_LENGTH) || DEFAULT_SESSION_TITLE;
   }
 
-  // Gera "salt:hash" em hexadecimal; o salt aleatório impede que senhas iguais tenham o mesmo hash
+  // Gera "scrypt$N$r$p$salt$hash"; os parâmetros ficam no próprio hash para validar senhas antigas
   private async hashPassword(password: string) {
     const salt = randomBytes(16).toString("hex");
-    const derivedKey = await scryptAsync(password, salt, SCRYPT_KEY_LENGTH);
-    return `${salt}:${derivedKey.toString("hex")}`;
+    const { N, r, p } = SCRYPT_PARAMS;
+    const derivedKey = await scryptAsync(password, salt, SCRYPT_KEY_LENGTH, { N, r, p });
+    return `scrypt$${N}$${r}$${p}$${salt}$${derivedKey.toString("hex")}`;
   }
 
   // Recalcula o hash com o salt salvo e compara em tempo constante, evitando ataques de tempo
   private async verifyPassword(password: string, storedHash: string) {
-    const [salt, hashHex] = storedHash.split(":");
-    if (!salt || !hashHex) {
+    const parsed = this.parsePasswordHash(storedHash);
+    if (!parsed) {
       return false;
     }
 
+    const { salt, hashHex, params } = parsed;
     const storedKey = Buffer.from(hashHex, "hex");
-    const derivedKey = await scryptAsync(password, salt, storedKey.length);
+    if (storedKey.length === 0) {
+      return false;
+    }
+
+    const derivedKey = await scryptAsync(password, salt, storedKey.length, params);
     return timingSafeEqual(storedKey, derivedKey);
+  }
+
+  // Aceita o formato versionado e o antigo "salt:hash", que usava os defaults do Node
+  private parsePasswordHash(
+    storedHash: string,
+  ): { salt: string; hashHex: string; params: { N: number; r: number; p: number } } | null {
+    if (storedHash.startsWith("scrypt$")) {
+      const [, nPart, rPart, pPart, salt, hashHex] = storedHash.split("$");
+      const N = Number(nPart);
+      const r = Number(rPart);
+      const p = Number(pPart);
+      if (!salt || !hashHex || !Number.isInteger(N) || !Number.isInteger(r) || !Number.isInteger(p)) {
+        return null;
+      }
+      // Teto de memória: evita que um valor absurdo vindo do banco estoure a RAM no login
+      if (N < 2 || N > SCRYPT_MAX_N || r < 1 || p < 1) {
+        return null;
+      }
+      return { salt, hashHex, params: { N, r, p } };
+    }
+
+    const [salt, hashHex] = storedHash.split(":");
+    if (!salt || !hashHex) {
+      return null;
+    }
+    return { salt, hashHex, params: SCRYPT_PARAMS };
   }
 
   // Erro do Prisma com código P2002 indica violação de campo @unique
@@ -387,12 +432,14 @@ export class AuthService {
     );
   }
 
-  // Erros de negócio (HttpException) passam sem alteração; o resto vira erro 500 genérico
-  private mapDatabaseError(error: unknown, message: string) {
+  // Erros de negócio (HttpException) passam sem alteração; o resto vira erro 500 genérico.
+  // Sempre lança: o retorno `never` garante, em tempo de compilação, que nenhum call site
+  // esqueça o tratamento do erro (antes, um `await` sem `throw` falharia em silêncio)
+  private mapDatabaseError(error: unknown, message: string): never {
     if (error instanceof HttpException) {
-      return error;
+      throw error;
     }
-    return new InternalServerErrorException(message);
+    throw new InternalServerErrorException(message);
   }
 
   // A versão no token permite revogar todas as sessões ativas de um usuário
@@ -401,7 +448,7 @@ export class AuthService {
   }
 
   // Invalida em todos os dispositivos os tokens que carregam a versão atual
-  async revokeToken(token: string | null) {
+  async revokeToken(token: string | null, context: AuthAuditContext = {}) {
     if (!token) {
       return;
     }
@@ -429,7 +476,9 @@ export class AuthService {
         data: { sessionVersion: { increment: 1 } },
       });
     } catch (error) {
-      throw this.mapDatabaseError(error, "Erro ao encerrar sessões");
+      this.mapDatabaseError(error, "Erro ao encerrar sessões");
     }
+
+    logAuthAudit("logout", { userId: payload.sub }, context);
   }
 }

@@ -6,14 +6,13 @@ import {
   Delete,
   Body,
   Param,
-  BadRequestException,
   UseGuards,
   Req,
 } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
-import { CreateSessionSchema } from 'shared';
+import { CreateSessionSchema, UpdateSessionSchema } from 'shared';
 import { Request } from 'express';
 
 @Controller('sessions')
@@ -41,11 +40,12 @@ export class SessionsController {
 
   // Só altera o título: as mensagens são criadas pelo fluxo de /queries
   @Patch(':id')
-  update(@Req() req: Request, @Param('id') id: string, @Body() body: { title?: string }) {
+  update(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(UpdateSessionSchema)) body: { title: string },
+  ) {
     const user = req.user as { id: string };
-    if (!body.title) {
-      throw new BadRequestException('O título é obrigatório');
-    }
     return this.authService.updateSessionTitle(user.id, id, body.title);
   }
 
