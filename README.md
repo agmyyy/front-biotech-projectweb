@@ -1,15 +1,17 @@
 ## Sobre o Projeto
 
-Trata-se uma plataforma web que combina uma interface de chat intuitiva com um sistema multi-agente simulado para responder perguntas sobre biotecnologia. Os usuários podem realizar perguntas e receber respostas estruturadas contendo resumo, sugestões, justificativas e fontes de referência tudo com uma animação de typewriter em tempo real.
+Trata-se uma plataforma web que combina uma interface de chat intuitiva pronta para receber um sistema multi-agente do ramo biotecnológico. Os usuários podem realizar perguntas e receber respostas estruturadas contendo resumo, sugestões, justificativas e fontes de referência tudo com uma animação que simula um typewriter em tempo real.
 
 ---
 
 ## Funcionalidades
 
 - **Autenticação JWT** — Cadastro e login com tokens baseados em cookie
-- **Chat Inteligente** — Interface de busca com respostas estruturadas (resumo, sugestões, justificativas, fontes)
-- **Streaming com Typewriter** — Exibição progressiva da resposta com animação palavra por palavra
-- **Gerenciamento de Sessões** — Criação, listagem e exclusão de sessões de conversa (botão “X” no hover com confirmação inline)
+- **Sessão via cookie HttpOnly** — JWT gravado no cookie `biotech_token` (inacessível ao JavaScript), com revogação global de sessões (`sessionVersion`)
+- **Segurança** — Rate limit nas rotas de auth (5 requisições/min por IP), cabeçalhos `helmet` e log de auditoria de autenticação
+- **Validação compartilhada** — Schemas Zod do pacote `shared` aplicados no frontend e no backend
+- **Chat Inteligente** — Interface de busca com respostas estruturadas.
+- **Gerenciamento de Sessões** — Cria, renomeia e exclui sessões de conversa (botão “X” no hover com confirmação inline)
 - **Feedback com Estrelas** — Sistema de avaliação de respostas (1 a 5 estrelas)
 - **Sidebar Colapsável** — Navegação lateral com histórico de conversas
 - **Rotas Protegidas** — Middleware de autenticação no client-side
@@ -28,6 +30,9 @@ Trata-se uma plataforma web que combina uma interface de chat intuitiva com um s
 | **Backend**  | NestJS                    | 11.0.0         |
 |              | Passport + JWT            | 0.7 / 11.0     |
 |              | Zod (validação)           | 3.24.0         |
+|              | Prisma + PostgreSQL       | 7.10           |
+|              | @nestjs/throttler         | 6.7            |
+|              | helmet                    | 8.3            |
 | **Shared**   | Schemas Zod + TypeScript  | Dual CJS/ESM   |
 | **Infra**    | npm Workspaces (Monorepo) | —              |
 
@@ -60,6 +65,10 @@ npm install
 ```bash
 # Backend
 cp backend/.env.example backend/.env
+
+# Frontend (arquivo novo, crie manualmente)
+# Windows: notepad frontend/.env.local
+# Linux/macOS: touch frontend/.env.local
 ```
 
 Edite o `backend/.env` conforme necessário:
@@ -69,7 +78,18 @@ PORT=3001
 JWT_SECRET=sua-chave-secreta-aqui
 JWT_EXPIRES_IN=24h
 CORS_ORIGINS=http://localhost:3000,http://localhost:3001
+DATABASE_URL=postgresql://usuario:senha@localhost:5432/biotech
 ```
+
+Crie o `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+```
+
+> **Por que o `NEXT_PUBLIC_API_URL` é obrigatório:** o cliente HTTP (`frontend/src/services/api-client.ts`) usa `/api` como fallback quando a variável não existe, e o `frontend/next.config.ts` **não possui `rewrites`** — ou seja, sem essa variável a requisição `POST /api/auth/login` cai no próprio servidor do Next.js e retorna erro 404, em vez de chegar ao NestJS na porta 3001.
+>
+> **Por que o `DATABASE_URL` é obrigatório:** o cliente Prisma (`backend/src/lib/prisma.ts`) lê essa variável para conectar no PostgreSQL; sem ela o backend não sobe. O valor deve apontar para o mesmo banco que você inspeciona.
 
 ### 4. Build do pacote shared
 
@@ -112,7 +132,9 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 │   │   ├── hooks/             # Custom hooks (search, chat, typewriter)
 │   │   ├── types/             # Definições TypeScript
 │   │   ├── constants/         # Cores e fontes
+│   │   ├── functions/         # Helpers de fontes
 │   │   ├── lib/               # Utilitários
+│   │   ├── utils/             # Helpers (classe de merge)
 │   │   └── middleware.ts      # Guard de autenticação
 │   └── public/                # Assets estáticos
 │
@@ -140,31 +162,31 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 
 ### Autenticação
 
-| Método | Rota                 | Autenticado | Descrição                                                 |
-| ------ | -------------------- | :---------: | --------------------------------------------------------- |
-| `POST` | `/api/auth/register` |     Não     | Cadastro de usuário                                       |
-| `POST` | `/api/auth/login`    |     Não     | Login do usuário                                          |
-| `POST` | `/api/auth/logout`   |     Não     | Encerra a sessão em todos os dispositivos (revoga o JWT)  |
-| `GET`  | `/api/auth/profile`  |     Sim     | Perfil do usuário logado                                  |
+| Método | Rota                 | Autenticado | Descrição                                                |
+| ------ | -------------------- | :---------: | -------------------------------------------------------- |
+| `POST` | `/api/auth/register` |     Não     | Cadastro de usuário                                      |
+| `POST` | `/api/auth/login`    |     Não     | Login do usuário                                         |
+| `POST` | `/api/auth/logout`   |     Não     | Encerra a sessão em todos os dispositivos (revoga o JWT) |
+| `GET`  | `/api/auth/profile`  |     Sim     | Perfil do usuário logado                                 |
 
 > **Rate limit:** `register` e `login` aceitam no máximo **5 requisições por minuto por IP** (resposta 429 acima disso); as demais rotas têm limite global de 100 req/min.
 
 ### Queries
 
-| Método | Rota           | Autenticado | Descrição                                                                    |
-| ------ | -------------- | :---------: | ---------------------------------------------------------------------------- |
-| `POST` | `/api/queries` |     Sim     | Enviar query e receber resposta estruturada                                  |
-| `GET`  | `/api/queries` |     Sim     | Listar mensagens da sessão (`sessionId` obrigatório na query string)         |
+| Método | Rota           | Autenticado | Descrição                                                            |
+| ------ | -------------- | :---------: | -------------------------------------------------------------------- |
+| `POST` | `/api/queries` |     Sim     | Enviar query e receber resposta estruturada (`sessionId` opcional: se ausente, uma nova sessão é criada) |
+| `GET`  | `/api/queries` |     Sim     | Listar mensagens da sessão (`sessionId` obrigatório na query string) |
 
 ### Sessões
 
-| Método   | Rota                         | Autenticado | Descrição                    |
-| -------- | ---------------------------- | :---------: | ---------------------------- |
-| `GET`    | `/api/sessions`              |     Sim     | Listar sessões do usuário    |
-| `GET`    | `/api/sessions/:id`          |     Sim     | Obter sessão por ID          |
-| `POST`   | `/api/sessions`              |     Sim     | Criar nova sessão            |
-| `PATCH`  | `/api/sessions/:id`          |     Sim     | Atualizar título da sessão   |
-| `DELETE` | `/api/sessions/:id`          |     Sim     | Excluir sessão do usuário (remove queries vinculadas; 404 se não for o dono) |
+| Método   | Rota                | Autenticado | Descrição                                                                    |
+| -------- | ------------------- | :---------: | ---------------------------------------------------------------------------- |
+| `GET`    | `/api/sessions`     |     Sim     | Listar sessões do usuário                                                    |
+| `GET`    | `/api/sessions/:id` |     Sim     | Obter sessão por ID                                                          |
+| `POST`   | `/api/sessions`     |     Sim     | Criar nova sessão                                                            |
+| `PATCH`  | `/api/sessions/:id` |     Sim     | Atualizar título da sessão                                                   |
+| `DELETE` | `/api/sessions/:id` |     Sim     | Excluir sessão do usuário (remove queries vinculadas; 404 se não for o dono) |
 
 > As mensagens (pergunta e resposta) são criadas automaticamente pelo fluxo de `POST /api/queries`.
 
@@ -172,8 +194,8 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 
 ### Feedback
 
-| Método | Rota            | Autenticado | Descrição                 |
-| ------ | --------------- | :---------: | ------------------------- |
+| Método | Rota            | Autenticado | Descrição                       |
+| ------ | --------------- | :---------: | ------------------------------- |
 | `POST` | `/api/feedback` |     Sim     | Enviar avaliação (1-5 estrelas) |
 
 ---
@@ -186,7 +208,10 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 | `JWT_SECRET`          | Chave secreta para tokens JWT              | —                                             |
 | `JWT_EXPIRES_IN`      | Tempo de expiração do token                | `24h`                                         |
 | `CORS_ORIGINS`        | Origens permitidas (separadas por vírgula) | `http://localhost:3000,http://localhost:3001` |
-| `NEXT_PUBLIC_API_URL` | URL da API no frontend                     | `http://localhost:3001/api`                   |
+| `DATABASE_URL`        | String de conexão com o PostgreSQL (obrigatória, usada pelo Prisma) | —                          |
+| `NEXT_PUBLIC_API_URL` | URL da API chamada pelo frontend           | `/api` (recomenda-se `http://localhost:3001/api`) |
+
+> `PORT`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `CORS_ORIGINS` e `DATABASE_URL` vão em `backend/.env`. A `NEXT_PUBLIC_API_URL` vai em `frontend/.env.local` (variáveis `NEXT_PUBLIC_*` só são embutidas no build do Next.js a partir desse arquivo).
 
 ---
 
@@ -220,6 +245,8 @@ npm run lint -w frontend
 - [x] Rate limiting nas rotas de auth com `@nestjs/throttler`
 - [x] Headers de segurança da API com `helmet`
 - [x] Log de auditoria de autenticação (registro, login, logout)
+- [x] Cookie HttpOnly no lugar do localStorage para guardar o token
+- [x] Revogação de sessões em todos os dispositivos (`sessionVersion` no Prisma)
 - [ ] Testes unitários e de integração (Jest)
 - [ ] Integração com modelo de IA real para respostas
 - [ ] Alterar avaliação de resposta (`PATCH /api/feedback`)
