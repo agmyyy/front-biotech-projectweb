@@ -71,26 +71,6 @@ cp backend/.env.example backend/.env
 # Linux/macOS: touch frontend/.env.local
 ```
 
-Edite o `backend/.env` conforme necessário:
-
-```env
-PORT=3001
-JWT_SECRET=sua-chave-secreta-aqui
-JWT_EXPIRES_IN=24h
-CORS_ORIGINS=http://localhost:3000,http://localhost:3001
-DATABASE_URL=postgresql://usuario:senha@localhost:5432/biotech
-```
-
-Crie o `frontend/.env.local`:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
-```
-
-> **Por que o `NEXT_PUBLIC_API_URL` é obrigatório:** o cliente HTTP (`frontend/src/services/api-client.ts`) usa `/api` como fallback quando a variável não existe, e o `frontend/next.config.ts` **não possui `rewrites`** — ou seja, sem essa variável a requisição `POST /api/auth/login` cai no próprio servidor do Next.js e retorna erro 404, em vez de chegar ao NestJS na porta 3001.
->
-> **Por que o `DATABASE_URL` é obrigatório:** o cliente Prisma (`backend/src/lib/prisma.ts`) lê essa variável para conectar no PostgreSQL; sem ela o backend não sobe. O valor deve apontar para o mesmo banco que você inspeciona.
-
 ### 4. Build do pacote shared
 
 ```bash
@@ -164,8 +144,8 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 
 | Método | Rota                 | Autenticado | Descrição                                                |
 | ------ | -------------------- | :---------: | -------------------------------------------------------- |
-| `POST` | `/api/auth/register` |     Não     | Cadastro de usuário                                      |
-| `POST` | `/api/auth/login`    |     Não     | Login do usuário                                         |
+| `POST` | `/api/auth/register` |     Não     | Cadastro usuário                                         |
+| `POST` | `/api/auth/login`    |     Não     | Login usuário                                            |
 | `POST` | `/api/auth/logout`   |     Não     | Encerra a sessão em todos os dispositivos (revoga o JWT) |
 | `GET`  | `/api/auth/profile`  |     Sim     | Perfil do usuário logado                                 |
 
@@ -173,10 +153,10 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 
 ### Queries
 
-| Método | Rota           | Autenticado | Descrição                                                            |
-| ------ | -------------- | :---------: | -------------------------------------------------------------------- |
+| Método | Rota           | Autenticado | Descrição                                                                                                |
+| ------ | -------------- | :---------: | -------------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/queries` |     Sim     | Enviar query e receber resposta estruturada (`sessionId` opcional: se ausente, uma nova sessão é criada) |
-| `GET`  | `/api/queries` |     Sim     | Listar mensagens da sessão (`sessionId` obrigatório na query string) |
+| `GET`  | `/api/queries` |     Sim     | Listar mensagens da sessão (`sessionId` obrigatório na query string)                                     |
 
 ### Sessões
 
@@ -190,8 +170,6 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 
 > As mensagens (pergunta e resposta) são criadas automaticamente pelo fluxo de `POST /api/queries`.
 
-> **Excluir chat:** passe o mouse sobre a conversa na sidebar para revelar o botão “X” (`ChatList`). Clicar abre um toast de pergunta (`Excluir "título"?`, com botões **Excluir**/**Manter**) que fica na tela até você decidir; **Manter** dispensa o toast sem excluir. Ao confirmar, o mesmo toast vira "Excluindo…" e depois o resultado (`Chat excluído` ou `Não foi possível excluir`), visível por no mínimo 3s, no padrão visual da app (fundo `aside`, texto `green-1`). Se era a sessão ativa e a exclusão teve sucesso, limpa a conversa e a URL (`/dashboard`).
-
 ### Feedback
 
 | Método | Rota            | Autenticado | Descrição                       |
@@ -202,16 +180,14 @@ Acesse: [http://localhost:3000](http://localhost:3000)
 
 ## Variáveis de Ambiente
 
-| Variável              | Descrição                                  | Padrão                                        |
-| --------------------- | ------------------------------------------ | --------------------------------------------- |
-| `PORT`                | Porta do servidor backend                  | `3001`                                        |
-| `JWT_SECRET`          | Chave secreta para tokens JWT              | —                                             |
-| `JWT_EXPIRES_IN`      | Tempo de expiração do token                | `24h`                                         |
-| `CORS_ORIGINS`        | Origens permitidas (separadas por vírgula) | `http://localhost:3000,http://localhost:3001` |
-| `DATABASE_URL`        | String de conexão com o PostgreSQL (obrigatória, usada pelo Prisma) | —                          |
-| `NEXT_PUBLIC_API_URL` | URL da API chamada pelo frontend           | `/api` (recomenda-se `http://localhost:3001/api`) |
-
-> `PORT`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `CORS_ORIGINS` e `DATABASE_URL` vão em `backend/.env`. A `NEXT_PUBLIC_API_URL` vai em `frontend/.env.local` (variáveis `NEXT_PUBLIC_*` só são embutidas no build do Next.js a partir desse arquivo).
+| Variável              | Descrição                                                           | Padrão                                            |
+| --------------------- | ------------------------------------------------------------------- | ------------------------------------------------- |
+| `PORT`                | Porta do servidor backend                                           | `3001`                                            |
+| `JWT_SECRET`          | Chave secreta para tokens JWT                                       | —                                                 |
+| `JWT_EXPIRES_IN`      | Tempo de expiração do token                                         | `24h`                                             |
+| `CORS_ORIGINS`        | Origens permitidas (separadas por vírgula)                          | `http://localhost:3000,http://localhost:3001`     |
+| `DATABASE_URL`        | String de conexão com o PostgreSQL (obrigatória, usada pelo Prisma) | —                                                 |
+| `NEXT_PUBLIC_API_URL` | URL da API chamada pelo frontend                                    | `/api` (recomenda-se `http://localhost:3001/api`) |
 
 ---
 
@@ -249,7 +225,6 @@ npm run lint -w frontend
 - [x] Revogação de sessões em todos os dispositivos (`sessionVersion` no Prisma)
 - [ ] Testes unitários e de integração (Jest)
 - [ ] Integração com modelo de IA real para respostas
-- [ ] Alterar avaliação de resposta (`PATCH /api/feedback`)
 - [ ] Deploy automatizado (CI/CD)
 - [ ] Página de recuperação de senha
 - [ ] Perfil do usuário com upload de avatar
