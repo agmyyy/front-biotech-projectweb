@@ -7,7 +7,6 @@ Trata-se uma plataforma web que combina uma interface de chat intuitiva pronta p
 ## Funcionalidades
 
 - **Autenticação JWT** — Cadastro e login com tokens baseados em cookie
-- **Sessão via cookie HttpOnly** — JWT gravado no cookie `biotech_token` (inacessível ao JavaScript), com revogação global de sessões (`sessionVersion`)
 - **Segurança** — Rate limit nas rotas de auth (5 requisições/min por IP), cabeçalhos `helmet` e log de auditoria de autenticação
 - **Validação compartilhada** — Schemas Zod do pacote `shared` aplicados no frontend e no backend
 - **Chat Inteligente** — Interface de busca com respostas estruturadas.
