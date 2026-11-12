@@ -2,6 +2,9 @@
 node_modules/
 dist/
 build/
+coverage/
+*.tsbuildinfo
+tscerror.txt
 
 # Arquivos de ambiente e chaves (Nunca envie para o GitHub)
 .env

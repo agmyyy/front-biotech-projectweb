@@ -1,9 +1,9 @@
 import { apiClient } from "./api-client";
 import type { User } from "@/types";
 
+// O token agora vive em cookie HttpOnly definido pelo servidor, então o front recebe apenas o usuário
 export interface AuthResponse {
   user: User;
-  token: string;
 }
 
 export const authService = {
@@ -22,8 +22,6 @@ export const authService = {
       throw new Error("Falha ao criar conta");
     }
 
-    apiClient.setToken(response.data.token);
-
     return response.data;
   },
 
@@ -40,8 +38,6 @@ export const authService = {
     if (!response.data) {
       throw new Error("Falha ao fazer login");
     }
-
-    apiClient.setToken(response.data.token);
 
     return response.data;
   },
@@ -60,15 +56,21 @@ export const authService = {
     return response.data;
   },
 
-  logout() {
-    apiClient.setToken(null);
-  },
+  // Retorna false quando o servidor não confirmou o logout; sem essa confirmação o cookie continuaria válido
+  async logout(): Promise<boolean> {
+    const response = await apiClient.post("/auth/logout", {});
 
-  setToken(token: string) {
-    apiClient.setToken(token);
-  },
+    if (response.error) {
+      return false;
+    }
 
-  getToken(): string | null {
-    return apiClient.getToken();
+    try {
+      localStorage.removeItem("biotech_user");
+      localStorage.removeItem("biotech_token");
+    } catch {
+      // localStorage indisponível
+    }
+
+    return true;
   },
 };

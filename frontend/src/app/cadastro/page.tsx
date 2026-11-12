@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/auth-service";
 import { toast } from "sonner";
@@ -12,8 +12,33 @@ export default function Cadastro() {
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    authService
+      .getProfile()
+      .then(() => {
+        if (isMounted) {
+          router.replace("/dashboard");
+        }
+      })
+      .catch(() => {
+        // Uma sessão inválida é limpa pelo tratamento central de 401
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCheckingSession(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const handleCadastro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,14 +46,16 @@ export default function Cadastro() {
     setError("");
 
     try {
-      const response = await authService.register({ name: nome, email, password });
-      if (response.user) {
-        localStorage.setItem("biotech_user", JSON.stringify(response.user));
-      }
+      await authService.register({
+        name: nome,
+        email,
+        password,
+      });
       toast.success("Conta criada com sucesso!");
       router.push("/dashboard");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro ao criar conta";
+      const message =
+        err instanceof Error ? err.message : "Erro ao criar conta";
       setError(message);
       toast.error(message);
     } finally {
@@ -47,15 +74,24 @@ export default function Cadastro() {
       {/* Lado Direito */}
       <div className="right-side">
         <div className="logo-container">
-          <Image src="/logo.png" alt="Logo 4WBiotech" width={168} height={63.85} />
+          <Image
+            src="/logo.png"
+            alt="Logo 4WBiotech"
+            width={168}
+            height={63.85}
+          />
         </div>
 
         <form className="login-form" onSubmit={handleCadastro}>
-
           {/* Grupo: Nome Completo */}
           <div className="field-group">
             <label className="input-label">
-              <Image src="/icone-usuario.svg" alt="Usuário" width={16} height={16} />
+              <Image
+                src="/icone-usuario.svg"
+                alt="Usuário"
+                width={16}
+                height={16}
+              />
               Nome Completo
             </label>
             <div className="input-wrapper">
@@ -71,7 +107,12 @@ export default function Cadastro() {
           {/* Grupo: E-mail */}
           <div className="field-group">
             <label className="input-label">
-              <Image src="/icone-email.svg" alt="Email" width={16} height={16} />
+              <Image
+                src="/icone-email.svg"
+                alt="Email"
+                width={16}
+                height={16}
+              />
               E-mail
             </label>
             <div className="input-wrapper">
@@ -87,7 +128,12 @@ export default function Cadastro() {
           {/* Grupo: Senha */}
           <div className="field-group">
             <label className="input-label">
-              <Image src="/icone-senha.svg" alt="Senha" width={16} height={16} />
+              <Image
+                src="/icone-senha.svg"
+                alt="Senha"
+                width={16}
+                height={16}
+              />
               Senha
             </label>
             <div className="input-wrapper">
@@ -108,14 +154,25 @@ export default function Cadastro() {
             </div>
           </div>
 
-          <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? "Criando conta..." : "Continuar"}
+          <button
+            className="btn-primary"
+            type="submit"
+            disabled={loading || isCheckingSession}
+          >
+            {isCheckingSession
+              ? "Verificando sessão..."
+              : loading
+                ? "Criando conta..."
+                : "Continuar"}
           </button>
           {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
         </form>
 
         <p className="register-link">
-          <Link href="/login" style={{ color: "#2C4235", textDecoration: "none" }}>
+          <Link
+            href="/login"
+            style={{ color: "#2C4235", textDecoration: "none" }}
+          >
             Já tem uma conta? Entrar
           </Link>
         </p>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { chatService } from "@/services/chat-service";
-import type { ChatMessage, ChatSession, FeedbackRating } from "@/types";
+import type { ChatSession } from "@/types";
 
 interface UseChatReturn {
   sessions: ChatSession[];
@@ -12,14 +13,12 @@ interface UseChatReturn {
   loadSessions: () => Promise<void>;
   loadSession: (sessionId: string) => Promise<void>;
   createSession: (title: string) => Promise<ChatSession | null>;
-  appendMessages: (sessionId: string, messages: ChatMessage[]) => Promise<void>;
-  updateMessageRating: (
+  refreshSession: (sessionId: string) => Promise<void>;
+  deleteSession: (
     sessionId: string,
-    messageId: string,
-    rating: number,
-  ) => Promise<void>;
-  deleteSession: (sessionId: string) => Promise<void>;
-  sendFeedback: (feedback: FeedbackRating) => Promise<void>;
+    toastId?: string | number,
+  ) => Promise<boolean>;
+  renameSession: (sessionId: string, title: string) => Promise<boolean>;
   setActiveSession: (session: ChatSession | null) => void;
 }
 
@@ -29,7 +28,8 @@ export function useChat(): UseChatReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadSessions = useCallback(async () => {
+  // Tempo mínimo (ms) que o toast de confirmação de exclusão fica visível.
+  const DELETE_TOAST_DURATION = 3000;  const loadSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -80,101 +80,90 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
-  const activeSessionRef = useRef<ChatSession | null>(null);
+  // Recarrega a sessão do servidor após a busca, pois o backend já salva pergunta e resposta em POST /queries
+  const refreshSession = useCallback(async (sessionId: string) => {
+    try {
+      const updated = await chatService.getSession(sessionId);
+      if (!updated) return;
 
-  useEffect(() => {
-    activeSessionRef.current = activeSession;
-  });
-
-  const appendMessages = useCallback(
-    async (sessionId: string, newMessages: ChatMessage[]) => {
-      if (newMessages.length === 0) return;
-
-      try {
-        const existingMessages =
-          activeSessionRef.current?.id === sessionId
-            ? activeSessionRef.current.messages
-            : [];
-        const mergedMessages = [...existingMessages, ...newMessages];
-
-        const updated = await chatService.appendSessionMessages(
-          sessionId,
-          mergedMessages,
-        );
-
-        if (!updated) return;
-
-        setSessions((prev) =>
-          prev.map((s) => (s.id === sessionId ? updated : s)),
-        );
-        setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao salvar mensagens",
-        );
-      }
-    },
-    [],
-  );
-
-  const updateMessageRating = useCallback(
-    async (sessionId: string, messageId: string, rating: number) => {
-      const session =
-        activeSessionRef.current?.id === sessionId
-          ? activeSessionRef.current
-          : null;
-      if (!session) return;
-
-      const updatedMessages = session.messages.map((msg) =>
-        msg.id === messageId ? { ...msg, rating } : msg,
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? updated : s)),
       );
+      // Só atualiza se a sessão ainda for a ativa, para não sobrescrever um chat aberto depois
+      setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar o chat");
+    }
+  }, []);
 
-      try {
-        const updated = await chatService.appendSessionMessages(
-          sessionId,
-          updatedMessages,
-        );
-
-        if (!updated) return;
-
-        setSessions((prev) =>
-          prev.map((s) => (s.id === sessionId ? updated : s)),
-        );
-        setActiveSession((prev) => (prev?.id === sessionId ? updated : prev));
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao salvar avaliação",
-        );
-      }
-    },
-    [],
-  );
-
-  //ainda não foi implementado a exclusão de chats
   const deleteSession = useCallback(
-    async (sessionId: string) => {
+    async (sessionId: string, toastId?: string | number) => {
       setLoading(true);
       setError(null);
+      const target =
+        sessions.find((s) => s.id === sessionId) ??
+        (activeSession?.id === sessionId ? activeSession : null);
       try {
         await chatService.deleteSession(sessionId);
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
         if (activeSession?.id === sessionId) {
           setActiveSession(null);
         }
+        toast.success("Chat excluído", {
+          id: toastId,
+          duration: DELETE_TOAST_DURATION,
+          description: target?.title
+            ? `"${target.title}" foi removido do histórico.`
+            : "A conversa foi removida do histórico.",
+        });
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao excluir sessão");
+        const message =
+          err instanceof Error ? err.message : "Erro ao excluir sessão";
+        setError(message);
+        toast.error("Não foi possível excluir", {
+          id: toastId,
+          duration: DELETE_TOAST_DURATION,
+          description: message,
+        });
+        return false;
       } finally {
         setLoading(false);
       }
     },
-    [activeSession],
+    [activeSession, sessions],
   );
 
-  const sendFeedback = useCallback(async (feedback: FeedbackRating) => {
+  const renameSession = useCallback(async (sessionId: string, title: string) => {
+    const trimmed = title.trim();
+    if (trimmed.length === 0) {
+      toast.error("Título inválido", {
+        description: "O título do chat não pode ficar vazio.",
+      });
+      return false;
+    }
+    setError(null);
     try {
-      await chatService.sendFeedback(feedback);
+      const updated = await chatService.updateSession(sessionId, {
+        title: trimmed,
+      });
+      if (!updated) return false;
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? { ...s, title: updated.title } : s)),
+      );
+      setActiveSession((prev) =>
+        prev?.id === sessionId ? { ...prev, title: updated.title } : prev,
+      );
+      toast.success("Chat renomeado", {
+        description: `Título atualizado para "${updated.title}".`,
+      });
+      return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar feedback");
+      const message =
+        err instanceof Error ? err.message : "Erro ao renomear sessão";
+      setError(message);
+      toast.error("Não foi possível renomear", { description: message });
+      return false;
     }
   }, []);
 
@@ -190,10 +179,9 @@ export function useChat(): UseChatReturn {
     loadSessions,
     loadSession,
     createSession,
-    appendMessages,
-    updateMessageRating,
+    refreshSession,
     deleteSession,
-    sendFeedback,
+    renameSession,
     setActiveSession,
   };
 }

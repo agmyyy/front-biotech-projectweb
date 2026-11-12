@@ -1,5 +1,5 @@
 import { apiClient } from "./api-client";
-import type { ChatMessage, ChatSession, FeedbackRating } from "@/types";
+import type { ChatSession } from "@/types";
 
 export const chatService = {
   async getSessions(): Promise<ChatSession[]> {
@@ -42,7 +42,7 @@ export const chatService = {
 
   async updateSession(
     sessionId: string,
-    patch: { title?: string; messages?: ChatMessage[] },
+    patch: { title?: string },
   ): Promise<ChatSession | null> {
     const response = await apiClient.patch<ChatSession>(
       `/sessions/${sessionId}`,
@@ -56,35 +56,8 @@ export const chatService = {
     return response.data || null;
   },
 
-  async appendSessionMessages(
-    sessionId: string,
-    messages: ChatMessage[],
-  ): Promise<ChatSession | null> {
-    const response = await apiClient.post<ChatSession>(
-      `/sessions/${sessionId}/messages`,
-      { messages },
-    );
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    return response.data || null;
-  },
-
   async deleteSession(sessionId: string): Promise<void> {
     const response = await apiClient.delete(`/sessions/${sessionId}`);
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-  },
-
-  async sendFeedback(feedback: FeedbackRating): Promise<void> {
-    const response = await apiClient.post("/feedback", {
-      rating: feedback.rating,
-      searchId: feedback.searchId,
-    });
 
     if (response.error) {
       throw new Error(response.error);

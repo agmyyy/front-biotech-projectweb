@@ -10,11 +10,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   createdAt?: string;
-  rating?: number;
-  suggestions?: string[];
-  justifications?: string[];
-  sources?: string[];
-  clarifications?: string[];
+  rating?: { score: number } | null;
 }
 
 export interface ChatSession {
@@ -26,7 +22,8 @@ export interface ChatSession {
 }
 
 export type SearchRequest = SharedSearchInput;
-export type SearchResponse = SharedSearchResponse;
+// searchId é o id da mensagem do assistente, usado para avaliar a resposta
+export type SearchResponse = SharedSearchResponse & { searchId?: string };
 export type FeedbackRating = SharedFeedbackInput;
 export type User = SharedUser;
 
@@ -41,22 +38,3 @@ export interface SidebarState {
   activeSessionId?: string;
 }
 
-export interface StreamChunk {
-  type:
-    | "chunk"
-    | "done"
-    | "error"
-    | "suggestion_chunk"
-    | "suggestion_done"
-    | "justification_chunk"
-    | "justification_done"
-    | "source_chunk"
-    | "source_done";
-  content?: string;
-  sources?: string[];
-  suggestions?: string[];
-  justifications?: string[];
-  clarifications?: string[];
-  sessionId?: string;
-  message?: string;
-}

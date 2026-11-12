@@ -3,11 +3,10 @@ import { QueriesController } from './queries.controller';
 import { SessionsController } from './sessions.controller';
 import { QueriesService } from './queries.service';
 import { MasModule } from '../mas/mas.module';
-import { EventsModule } from '../events/events.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [MasModule, EventsModule, AuthModule],
+  imports: [MasModule, AuthModule],
   controllers: [QueriesController, SessionsController],
   providers: [QueriesService],
 })

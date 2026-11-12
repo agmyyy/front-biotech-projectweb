@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Sidebar,
   AsideHeader,
@@ -17,6 +18,7 @@ import { useChat } from "@/hooks/control/use-chat";
 import { useFeedbackApi } from "@/hooks/api/use-feedback-api";
 import { useFeedbackControl } from "@/hooks/control/use-feedback-control";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
+import { authService } from "@/services/auth-service";
 
 import { cn } from "@/lib/utils";
 import type { User } from "@shared/schemas/auth.schema";
@@ -36,6 +38,8 @@ export function Dashboard() {
   }, []);
 
   const {
+    query,
+    setQuery,
     loading,
     result,
     setResult,
@@ -50,9 +54,9 @@ export function Dashboard() {
     sessions,
     activeSession,
     createSession,
-    appendMessages,
-    updateMessageRating,
+    refreshSession,
     deleteSession,
+    renameSession,
     loadSession,
     setActiveSession,
   } = useChat();
@@ -61,11 +65,33 @@ export function Dashboard() {
 
   const [pendingAnswerId, setPendingAnswerId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+  const [sessionError, setSessionError] = useState(false);
+  const confirmToastId = useRef<string | number | null>(null);
   const { containerRef, autoScrollEnabled, scrollToBottom } = useAutoScroll();
 
-  const { sendFeedback, resetFeedback } = useFeedbackApi({
-    searchId: result?.sessionId || activeSession?.id,
-  });
+  const { sendFeedback } = useFeedbackApi();
+
+  const validateSession = useCallback(async () => {
+    setIsSessionReady(false);
+    setSessionError(false);
+    let isUnauthorized = false;
+
+    try {
+      setUser(await authService.getProfile());
+    } catch (error) {
+      isUnauthorized =
+        error instanceof Error && error.message.startsWith("Sessão expirada");
+
+      if (!isUnauthorized) {
+        setSessionError(true);
+      }
+    } finally {
+      if (!isUnauthorized) {
+        setIsSessionReady(true);
+      }
+    }
+  }, []);
 
   /**
    * Cria um novo chat limpo na interface.
@@ -73,10 +99,9 @@ export function Dashboard() {
   const handleNewChat = useCallback(() => {
     clearSearch();
     resetGeneration();
-    resetFeedback();
     setActiveSession(null); // Reseta a sessão ativa para preparar para nova pergunta
     router.replace("/dashboard", { scroll: false });
-  }, [clearSearch, resetGeneration, resetFeedback, setActiveSession, router]);
+  }, [clearSearch, resetGeneration, setActiveSession, router]);
 
   /**
    * Sincroniza a URL com a sessão ativa (ex.: /dashboard?chat=abc-123).
@@ -100,7 +125,6 @@ export function Dashboard() {
       if (cleanedText.length < 2) return;
 
       resetGeneration();
-      resetFeedback();
       setResult(null);
 
       const dynamicTitle =
@@ -118,45 +142,24 @@ export function Dashboard() {
 
       syncUrl(currentSession.id);
 
-      // Gera o id da resposta agora para que a chave do balão ao vivo
-      // seja estável durante a transição ao vivo, persistido.
+      // Id estável da resposta ao vivo, usado como chave do balão durante a transição
       const pendingAnswerId = crypto.randomUUID();
       setPendingAnswerId(pendingAnswerId);
 
-      // Persiste a pergunta no histórico da sessão
-      await appendMessages(currentSession.id, [
-        {
-          id: crypto.randomUUID(),
-          role: "user",
-          content: cleanedText,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      // O backend salva pergunta e resposta em POST /queries, então não há persistência extra aqui
+      await executeSearch(cleanedText, currentSession.id);
 
-      const searchResult = await executeSearch(cleanedText, currentSession.id);
-
-      if (searchResult && searchResult.summary) {
-        await appendMessages(currentSession.id, [
-          {
-            id: pendingAnswerId,
-            role: "assistant",
-            content: searchResult.summary,
-            createdAt: new Date().toISOString(),
-            suggestions: searchResult.suggestions,
-            justifications: searchResult.justifications,
-            sources: searchResult.sources,
-            clarifications: searchResult.clarifications,
-          },
-        ]);
-      }
+      // Recarrega o histórico e limpa a pergunta ao vivo, que agora já aparece pela sessão
+      await refreshSession(currentSession.id);
+      setQuery("");
     },
     [
       activeSession,
       createSession,
       executeSearch,
-      appendMessages,
+      refreshSession,
+      setQuery,
       resetGeneration,
-      resetFeedback,
       setResult,
       syncUrl,
     ],
@@ -168,27 +171,17 @@ export function Dashboard() {
   const handleSelectSession = useCallback(
     async (sessionId: string) => {
       clearSearch();
-      resetFeedback();
       completeGeneration();
       await loadSession(sessionId);
       syncUrl(sessionId);
     },
-    [loadSession, clearSearch, completeGeneration, resetFeedback, syncUrl],
+    [loadSession, clearSearch, completeGeneration, syncUrl],
   );
 
-  /**
-   * Lê o usuário do localStorage ao montar.
-   */
+  // O perfil validado pelo servidor substitui qualquer dado de usuário em cache local
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("biotech_user");
-      if (stored) {
-        setUser(JSON.parse(stored));
-      }
-    } catch {
-      // JSON inválido ou indisponível
-    }
-  }, []);
+    void validateSession();
+  }, [validateSession]);
 
   /**
    * Ao montar, restaura a sessão indicada na URL (?chat=id).
@@ -218,22 +211,90 @@ export function Dashboard() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [loadSession, clearSearch, setActiveSession]);
 
-  const handleDeleteSession = useCallback(
-    (sessionId: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      deleteSession(sessionId);
-    },
-    [deleteSession],
-  );
-
-  const handleFeedback = useCallback(
-    (rating: number) => {
-      sendFeedback(rating);
-      if (activeSession && pendingAnswerId) {
-        updateMessageRating(activeSession.id, pendingAnswerId, rating);
+  const handleConfirmDelete = useCallback(
+    async (sessionId: string) => {
+      const toastId = confirmToastId.current;
+      confirmToastId.current = null;
+      const wasActive = activeSession?.id === sessionId;
+      if (toastId) {
+        toast.loading("Excluindo chat…", { id: toastId });
+      }
+      const ok = await deleteSession(sessionId, toastId ?? undefined);
+      if (ok && wasActive) {
+        clearSearch();
+        completeGeneration();
+        syncUrl(undefined);
       }
     },
-    [sendFeedback, activeSession, pendingAnswerId, updateMessageRating],
+    [
+      deleteSession,
+      activeSession,
+      clearSearch,
+      completeGeneration,
+      syncUrl,
+    ],
+  );
+
+  const handleRequestDelete = useCallback(
+    (sessionId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const target = sessions.find((s) => s.id === sessionId);
+      if (!target) return;
+      if (confirmToastId.current) {
+        toast.dismiss(confirmToastId.current);
+      }
+      const id = `delete-chat-${sessionId}`;
+      confirmToastId.current = id;
+      toast(`Excluir "${target.title}"?`, {
+        id,
+        description: "Essa ação não pode ser desfeita.",
+        duration: Infinity,
+        action: {
+          label: "Excluir",
+          onClick: () => handleConfirmDelete(sessionId),
+        },
+        cancel: {
+          label: "Manter",
+          onClick: () => {
+            toast.dismiss(id);
+          },
+        },
+        actionButtonStyle: {
+          background: "var(--color-button)",
+          color: "#fff",
+          borderRadius: "9999px",
+        },
+        cancelButtonStyle: {
+          background: "transparent",
+          color: "var(--color-green-1)",
+          border: "1px solid var(--color-li)",
+          borderRadius: "9999px",
+        },
+        onDismiss: () => {
+          if (confirmToastId.current === id) confirmToastId.current = null;
+        },
+      });
+    },
+    [sessions, handleConfirmDelete],
+  );
+
+  const handleRequestRename = useCallback(
+    async (sessionId: string, title: string) => {
+      return renameSession(sessionId, title);
+    },
+    [renameSession],
+  );
+
+  // Avalia a mensagem indicada; quando o backend já tem nota (409), recarrega a sessão para sincronizar
+  const handleFeedback = useCallback(
+    async (messageId: string, rating: number) => {
+      const outcome = await sendFeedback(messageId, rating);
+      if (outcome === "already-rated" && activeSession) {
+        await refreshSession(activeSession.id);
+      }
+      return outcome !== "failed";
+    },
+    [sendFeedback, refreshSession, activeSession],
   );
 
   const sessionMessages = activeSession?.messages ?? [];
@@ -271,7 +332,31 @@ export function Dashboard() {
     if (autoScrollEnabled) {
       scrollToBottom();
     }
-  }, [persistedMessages.length, liveMessage, autoScrollEnabled, scrollToBottom]);
+  }, [
+    persistedMessages.length,
+    liveMessage,
+    autoScrollEnabled,
+    scrollToBottom,
+  ]);
+
+  if (!isSessionReady) {
+    return (
+      <main className="flex min-h-screen items-center justify-center" aria-label="Validando sessão">
+        <p>Validando sua sessão...</p>
+      </main>
+    );
+  }
+
+  if (sessionError) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4" aria-label="Erro ao validar sessão">
+        <p>Não foi possível validar sua sessão.</p>
+        <button type="button" onClick={() => void validateSession()}>
+          Tentar novamente
+        </button>
+      </main>
+    );
+  }
 
   return (
     <div className={cn("flex h-screen bg-main overflow-hidden font-primary")}>
@@ -283,7 +368,8 @@ export function Dashboard() {
           sessions={sessions}
           activeSessionId={activeSession?.id}
           onSelect={handleSelectSession}
-          onDelete={handleDeleteSession}
+          onRequestDelete={handleRequestDelete}
+          onRequestRename={handleRequestRename}
         />
         <Logout isCollapsed={isCollapsed} />
       </Sidebar>
@@ -306,29 +392,23 @@ export function Dashboard() {
               persistedMessages.map((msg, index) =>
                 msg.role === "user" ? (
                   <SearchInput key={msg.id || index} text={msg.content} />
-                ) : msg.suggestions ? (
+                ) : (
                   <SearchResult
                     key={msg.id || index}
                     result={{
                       summary: msg.content,
-                      suggestions: msg.suggestions,
-                      justifications: msg.justifications ?? [],
-                      sources: msg.sources ?? [],
-                      clarifications: msg.clarifications,
                       sessionId: activeSession?.id ?? "",
                     }}
                     animated={false}
-                    messageId={msg.id}
-                    onFeedback={msg.rating ? undefined : handleFeedback}
-                  />
-                ) : (
-                  <SearchResult
-                    key={msg.id || index}
-                    content={msg.content}
-                    animated={false}
+                    isRated={msg.rating != null}
+                    onFeedback={(rating) => handleFeedback(msg.id, rating)}
                   />
                 ),
               )}
+
+            {query && (loading || liveMessage) && (
+              <SearchInput text={query} />
+            )}
 
             {liveMessage && (
               <SearchResult
@@ -336,9 +416,10 @@ export function Dashboard() {
                 result={result!}
                 animated={true}
                 onComplete={completeGeneration}
-                onFeedback={handleFeedback}
+                onFeedback={(rating) =>
+                  handleFeedback(result?.searchId ?? "", rating)
+                }
                 currentPhase={currentPhase}
-                messageId={pendingAnswerId ?? undefined}
               />
             )}
 

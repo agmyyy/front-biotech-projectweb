@@ -3,7 +3,7 @@ import {
   Injectable,
   BadRequestException,
 } from '@nestjs/common';
-import { ZodSchema } from 'zod';
+import { ZodSchema, ZodError } from 'zod';
 
 @Injectable()
 export class ZodValidationPipe implements PipeTransform {
@@ -13,7 +13,7 @@ export class ZodValidationPipe implements PipeTransform {
     const result = this.schema.safeParse(value);
 
     if (!result.success) {
-      const messages = result.error.errors.map((e) => e.message).join(', ');
+      const messages = result.error.issues.map((issue) => issue.message).join(', ');
       throw new BadRequestException(`Validação falhou: ${messages}`);
     }
 

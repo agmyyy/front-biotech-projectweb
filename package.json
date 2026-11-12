@@ -8,5 +8,9 @@
   ],
   "dependencies": {
     "sonner": "^2.0.7"
+  },
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "test:cov": "npm run test:cov --workspaces --if-present"
   }
 }

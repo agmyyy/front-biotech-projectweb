@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
+import helmet from "helmet";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 
@@ -19,6 +20,10 @@ async function bootstrap() {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   });
+
+  // Headers de segurança padrão (CSP, X-Frame-Options, HSTS, X-Content-Type-Options...)
+  // Protege contra clickjacking, MIME sniffing e demais ataques de superfície comum
+  app.use(helmet());
 
   app.useGlobalFilters(new AllExceptionsFilter());
 

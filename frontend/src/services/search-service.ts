@@ -1,17 +1,12 @@
 import { apiClient } from './api-client';
-import type { SearchRequest, SearchResponse, StreamChunk } from '@/types';
+import { handleUnauthorizedSession } from "./auth-session";
+import type { SearchRequest, SearchResponse } from '@/types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export interface SearchStreamCallbacks {
   onChunk: (text: string) => void;
-  onSuggestionChunk: (text: string) => void;
-  onSuggestionDone: () => void;
-  onJustificationChunk: (text: string) => void;
-  onJustificationDone: () => void;
-  onSourceChunk: (text: string) => void;
-  onSourceDone: () => void;
-  onDone: (data: { sessionId: string }) => void;
+  onDone: (data: { sessionId: string; searchId: string }) => void;
   signal?: AbortSignal;
 }
 
@@ -35,20 +30,18 @@ export const searchService = {
     sessionId: string | undefined,
     callbacks: SearchStreamCallbacks,
   ): Promise<void> {
-    const token = apiClient.getToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const response = await fetch(`${API_BASE_URL}/queries`, {
       method: 'POST',
-      headers,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, sessionId }),
       signal: callbacks.signal,
     });
+
+    if (response.status === 401) {
+      await handleUnauthorizedSession();
+      throw new Error("Sessão expirada. Faça login novamente.");
+    }
 
     if (!response.ok) {
       let message = 'Erro na requisição de busca';
@@ -70,28 +63,7 @@ export const searchService = {
       }
     }
 
-    if (data.suggestions) {
-      for (const suggestion of data.suggestions) {
-        callbacks.onSuggestionChunk(suggestion);
-        callbacks.onSuggestionDone();
-      }
-    }
-
-    if (data.justifications) {
-      for (const justification of data.justifications) {
-        callbacks.onJustificationChunk(justification);
-        callbacks.onJustificationDone();
-      }
-    }
-
-    if (data.sources) {
-      for (const source of data.sources) {
-        callbacks.onSourceChunk(source);
-        callbacks.onSourceDone();
-      }
-    }
-
-    callbacks.onDone({ sessionId: data.sessionId || '' });
+    callbacks.onDone({ sessionId: data.sessionId || "", searchId: data.searchId || "" });
   },
 
   async getHistory(sessionId: string): Promise<SearchResponse[]> {

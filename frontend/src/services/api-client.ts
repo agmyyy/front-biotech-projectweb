@@ -1,48 +1,27 @@
 import type { ApiResponse } from '@/types';
+import { handleUnauthorizedSession } from "./auth-session";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
-const TOKEN_KEY = "biotech_token";
+type ApiErrorResponse = {
+  message?: string | string[];
+  error?: string;
+  details?: unknown;
+};
 
 class ApiClient {
   private baseUrl: string;
-  private token: string | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
-    this.token = this.getStoredToken();
-  }
 
-  private getStoredToken(): string | null {
-    if (typeof window === "undefined") return null;
-    try {
-      return localStorage.getItem(TOKEN_KEY);
-    } catch {
-      return null;
-    }
-  }
-
-  setToken(token: string | null) {
-    this.token = token;
-    if (typeof window === "undefined") return;
-    try {
-      if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
-        document.cookie = `${TOKEN_KEY}=${token}; path=/; max-age=86400; SameSite=Lax`;
-      } else {
-        localStorage.removeItem(TOKEN_KEY);
-        document.cookie = `${TOKEN_KEY}=; path=/; max-age=0`;
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("biotech_token");
+        localStorage.removeItem("biotech_user");
+      } catch {
+        // O armazenamento local pode estar desabilitado no navegador
       }
-    } catch {
-      // localStorage indisponível
     }
-  }
-
-  getToken(): string | null {
-    return this.token;
-  }
-
-  private getAuthHeaders(): Record<string, string> {
-    return this.token ? { Authorization: `Bearer ${this.token}` } : {};
   }
 
   private async request<T>(
@@ -51,11 +30,12 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
+    // credentials "include" envia o cookie HttpOnly do JWT, mesmo em requisições cross-origin
     const config: RequestInit = {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...this.getAuthHeaders(),
         ...options.headers,
       },
     };
@@ -63,18 +43,41 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
 
+      const responseData: unknown = await response.json().catch(() => ({}));
+      const data = responseData as ApiErrorResponse;
+
       if (response.status === 401) {
-        this.token = null;
+        const isPublicAuthRequest =
+          endpoint === "/auth/login" ||
+          endpoint === "/auth/register" ||
+          endpoint === "/auth/logout";
+
+        if (!isPublicAuthRequest) {
+          await handleUnauthorizedSession();
+        }
+
         return {
-          error: 'Sessão expirada. Faça login novamente.',
+          error: isPublicAuthRequest
+            ? typeof data.message === "string"
+              ? data.message
+              : Array.isArray(data.message)
+                ? data.message.join(", ")
+                : "Credenciais inválidas"
+            : "Sessão expirada. Faça login novamente.",
           status: 401,
         };
       }
 
-      const data = await response.json();
-
       if (!response.ok) {
-        const message = data.message || data.error || (Array.isArray(data.details) ? data.details.join(', ') : null) || 'Erro na requisição';
+        const message =
+          (typeof data.message === "string"
+            ? data.message
+            : Array.isArray(data.message)
+              ? data.message.join(", ")
+              : null) ||
+          data.error ||
+          (Array.isArray(data.details) ? data.details.join(", ") : null) ||
+          "Erro na requisição";
         return {
           error: message,
           status: response.status,
@@ -82,7 +85,7 @@ class ApiClient {
       }
 
       return {
-        data,
+        data: responseData as T,
         status: response.status,
       };
     } catch (error) {

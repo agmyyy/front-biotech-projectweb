@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/services/auth-service";
 import { toast } from "sonner";
@@ -11,9 +11,51 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const requestedRedirect = searchParams.get("redirect");
+  const redirectTarget =
+    requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
+      ? requestedRedirect
+      : "/dashboard";
+
+  useEffect(() => {
+    let isMounted = true;
+
+    authService
+      .getProfile()
+      .then(() => {
+        if (isMounted) {
+          router.replace(redirectTarget);
+        }
+      })
+      .catch(() => {
+        // Uma sessão inválida é limpa pelo tratamento central de 401
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCheckingSession(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [redirectTarget, router]);
+
+  useEffect(() => {
+    if (searchParams.get("sessionExpired") !== "1") {
+      return;
+    }
+
+    toast.error("Sua sessão expirou. Faça login novamente.");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("sessionExpired");
+    const query = params.toString();
+    router.replace(query ? `/login?${query}` : "/login");
+  }, [router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,11 +65,8 @@ function LoginForm() {
     try {
       const response = await authService.login({ email, password });
       if (response.user) {
-        localStorage.setItem("biotech_user", JSON.stringify(response.user));
+        router.push(redirectTarget);
       }
-      // toast.success("Login realizado com sucesso!");
-      const redirect = searchParams.get("redirect") || "/dashboard";
-      router.push(redirect);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Erro ao fazer login";
@@ -109,8 +148,16 @@ function LoginForm() {
 
           <p className="forgot-password">Esqueceu a senha?</p>
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button className="btn-primary" type="submit" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
+          <button
+            className="btn-primary"
+            type="submit"
+            disabled={loading || isCheckingSession}
+          >
+            {isCheckingSession
+              ? "Verificando sessão..."
+              : loading
+                ? "Entrando..."
+                : "Entrar"}
           </button>
         </form>
 

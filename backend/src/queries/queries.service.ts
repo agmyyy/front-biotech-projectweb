@@ -1,120 +1,64 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { MockService } from '../database/mock.service';
+import { Injectable, BadRequestException, BadGatewayException, HttpException } from '@nestjs/common';
+import { AuthService } from '../auth/auth.service';
 import { MasService } from '../mas/mas.service';
-import { EventsGateway } from '../events/events.gateway';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class QueriesService {
   constructor(
-    private mockService: MockService,
+    private authService: AuthService,
     private masService: MasService,
-    private eventsGateway: EventsGateway,
   ) {}
 
+  // Grava a pergunta e a resposta como mensagens da mesma sessão
   async create(data: { query: string; userId: string; sessionId?: string }) {
-    let sessionId = data.sessionId;
+    const sessionId = data.sessionId ?? (await this.authService.createSession(data.userId)).id;
 
-    if (!sessionId) {
-      const session = this.mockService.createSession({
-        title: data.query.slice(0, 50),
-        userId: data.userId,
+    const userMessage = await this.authService.createMessage(data.userId, sessionId, data.query, 'user');
+
+    // A pergunta do usuário já está gravada; se o MAS ou a resposta falharem,
+    // mantemos o histórico (o usuário digitou) e respondemos 502
+    let masResponse;
+    let assistantMessage;
+    try {
+      masResponse = await this.masService.processQuery({
+        query: data.query,
+        queryId: userMessage.id,
+        sessionId,
       });
-      sessionId = session.id;
+
+      assistantMessage = await this.authService.createMessage(
+        data.userId,
+        sessionId,
+        masResponse.summary,
+        'assistant',
+      );
+    } catch (error) {
+      // Erros já mapeados (banco) mantêm o status original; falha vinda do MAS vira 502
+      if (error instanceof HttpException) {
+        console.error('Falha ao gravar a resposta do assistente:', error);
+        throw error;
+      }
+      console.error('Falha ao processar a pergunta no MAS:', error);
+      throw new BadGatewayException(
+        'Não foi possível processar a pergunta no momento. Tente novamente.',
+      );
     }
 
-    const query = this.mockService.createQuery({
-      query: data.query,
-      sessionId,
-      userId: data.userId,
-    });
-
-    const masResponse = await this.masService.processQuery({
-      query: data.query,
-      queryId: query.id,
-      sessionId,
-    });
-
-    query.summary = masResponse.summary;
-    query.suggestions = masResponse.suggestions;
-    query.justifications = masResponse.justifications;
-    query.sources = masResponse.sources;
-    query.status = 'completed';
-
-    this.eventsGateway.notifyQueryCompleted(query.id, {
-      summary: query.summary,
-      suggestions: query.suggestions,
-      justifications: query.justifications,
-      sources: query.sources,
-    });
-
     return {
-      id: query.id,
-      query: query.query,
-      sessionId: query.sessionId,
-      summary: query.summary,
-      suggestions: query.suggestions,
-      justifications: query.justifications,
-      sources: query.sources,
-      clarifications: query.clarifications,
-      status: query.status,
-      createdAt: query.createdAt,
+      // O id da resposta do assistente serve de searchId para a avaliação (feedback)
+      searchId: assistantMessage.id,
+      sessionId,
+      summary: masResponse.summary,
+      status: 'completed',
+      createdAt: assistantMessage.createdAt,
     };
   }
 
   findAll(userId: string, sessionId?: string) {
-    return this.mockService.findAllQueries(userId, sessionId).map((q) => ({
-      id: q.id,
-      query: q.query,
-      sessionId: q.sessionId,
-      summary: q.summary,
-      suggestions: q.suggestions,
-      justifications: q.justifications,
-      sources: q.sources,
-      clarifications: q.clarifications,
-      status: q.status,
-      createdAt: q.createdAt,
-    }));
-  }
-
-  findOne(id: string) {
-    const query = this.mockService.findQueryById(id);
-    if (!query) {
-      throw new NotFoundException('Consulta não encontrada');
+    // Sem sessionId não há como filtrar as mensagens; devolver [] esconderia o uso incorreto da rota
+    if (!sessionId) {
+      throw new BadRequestException('O parâmetro sessionId é obrigatório');
     }
-    return {
-      id: query.id,
-      query: query.query,
-      sessionId: query.sessionId,
-      summary: query.summary,
-      suggestions: query.suggestions,
-      justifications: query.justifications,
-      sources: query.sources,
-      clarifications: query.clarifications,
-      status: query.status,
-      createdAt: query.createdAt,
-    };
-  }
-
-  async remove(id: string) {
-    const deleted = this.mockService.deleteQuery(id);
-    if (!deleted) {
-      throw new NotFoundException('Consulta não encontrada');
-    }
-    return { message: 'Consulta deletada com sucesso' };
-  }
-
-  async addClarification(queryId: string, clarification: string) {
-    const query = this.mockService.addClarification(queryId, clarification);
-    if (!query) {
-      throw new NotFoundException('Consulta não encontrada');
-    }
-
-    this.eventsGateway.notifyClarification(queryId, clarification);
-
-    return {
-      id: query.id,
-      clarifications: query.clarifications,
-    };
+    return this.authService.findMessagesBySession(userId, sessionId);
   }
 }
